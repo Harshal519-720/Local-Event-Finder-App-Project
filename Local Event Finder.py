@@ -27,36 +27,38 @@ def get_eventbrite_events(city_name):
     }
     params = {
         "location.address": city_name,
-        "q": "music",       # You can change this to another category
         "expand": "venue",
-        "page": 1,
     }
 
-    response = requests.get(url, headers=headers, params=params)
+    try:
+        response = requests.get(url, headers=headers, params=params)
 
-    # Handle the response
-    if response.status_code == 200:
-        data = response.json()
-        events = data.get("events", [])
+        # Handle the response
+        if response.status_code == 200:
+            data = response.json()
+            events = data.get("events", [])
 
-        if not events:
-            results_box.insert(tk.END, "No events found.\n")
+            if not events:
+                results_box.insert(tk.END, "No events found.\n")
+            else:
+                for event in events[:10]:  # limit to first 10
+                    name = event.get("name", {}).get("text", "No title")
+                    date = event.get("start", {}).get("local", "No date")
+                    venue = event.get("venue", {})
+                    venue_name = venue.get("name", "Venue not provided") if venue else "Venue not provided"
+                    
+                    results_box.insert(
+                        tk.END,
+                        f"Event: {name}\n"
+                        f"Date: {date}\n"
+                        f"Venue: {venue_name}\n"
+                        "\u2014" * 40 + "\n"
+                    )
         else:
-            for event in events[:10]:  # limit to first 10
-                name = event["name"].get("text", "No title")
-                date = event["start"].get("local", "No date")
-                venue_name = (
-                    event.get("venue", {}).get("name") or "Venue not provided"
-                )
-                results_box.insert(
-                    tk.END,
-                    f"Event: {name}\n"
-                    f"Date: {date}\n"
-                    f"Venue: {venue_name}\n"
-                    "\u2014" * 40 + "\n"
-                )
-    else:
-        results_box.insert(tk.END, f"Error: {response.status_code} - network/API issue.\n")
+            results_box.insert(tk.END, f"Error: {response.status_code} - {response.json().get('error_description', 'Unknown error')}\n")
+    
+    except requests.exceptions.RequestException as e:
+        results_box.insert(tk.END, f"Network error: {str(e)}\n")
 
     results_box.config(state=tk.DISABLED)
 
