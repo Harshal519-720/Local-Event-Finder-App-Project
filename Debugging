@@ -1,7 +1,8 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import requests
 from datetime import datetime
+import json
 
 class EventFinder:
     def __init__(self, root):
@@ -9,7 +10,7 @@ class EventFinder:
         self.root.title("Event Finder Pro")
         self.root.geometry("900x700")
         
-        # Use your 50-character API key
+        # Use your API key - make sure it's valid and has proper permissions
         self.API_KEY = "6CGROMFISJVD5Z5IQ3VEHSGF4CKXJFFRMGDEMNNLUBLR7H2DJ7"
         
         self.create_widgets()
@@ -29,19 +30,36 @@ class EventFinder:
         ttk.Label(search_frame, text="Location:").grid(row=0, column=0, sticky=tk.W)
         self.location_entry = ttk.Entry(search_frame, width=40)
         self.location_entry.grid(row=0, column=1, padx=5)
+        self.location_entry.insert(0, "New York, NY")  # Default location
         
-        ttk.Label(search_frame, text="Category:").grid(row=1, column=0, sticky=tk.W)
+        ttk.Label(search_frame, text="Keywords:").grid(row=1, column=0, sticky=tk.W)
+        self.keywords_entry = ttk.Entry(search_frame, width=40)
+        self.keywords_entry.grid(row=1, column=1, padx=5, pady=5)
+        
+        ttk.Label(search_frame, text="Category:").grid(row=2, column=0, sticky=tk.W)
         self.category_combo = ttk.Combobox(search_frame, values=[
-            "", "music", "business", "food", "arts", "sports"
+            "", "103", "101", "110", "105", "104", "102", "108", "109", "111", "113"
         ])
-        self.category_combo.grid(row=1, column=1, padx=5, pady=5, sticky=tk.W)
+        self.category_combo.grid(row=2, column=1, padx=5, pady=5, sticky=tk.W)
+        
+        # Add category explanation
+        category_help = ttk.Label(search_frame, text="(103=Music, 101=Business, 110=Food, 105=Arts, 104=Health, etc.)", font=("Arial", 8))
+        category_help.grid(row=3, column=1, padx=5, sticky=tk.W)
         
         search_btn = ttk.Button(
             search_frame, 
             text="Find Events", 
             command=self.search_events
         )
-        search_btn.grid(row=2, column=0, columnspan=2, pady=10)
+        search_btn.grid(row=4, column=0, columnspan=2, pady=10)
+        
+        # API Test button
+        test_btn = ttk.Button(
+            search_frame,
+            text="Test API Connection",
+            command=self.test_api_connection
+        )
+        test_btn.grid(row=4, column=2, padx=10)
         
         # Results frame
         results_frame = ttk.LabelFrame(main_frame, text="Event Results", padding="10")
@@ -51,7 +69,7 @@ class EventFinder:
         self.tree = ttk.Treeview(
             results_frame, 
             columns=("date", "venue", "price"), 
-            show="headings",
+            show="tree headings",
             height=15
         )
         
@@ -73,17 +91,23 @@ class EventFinder:
         
         # Status bar
         self.status_var = tk.StringVar()
-        self.status_var.set("Ready")
-        ttk.Label(
+        self.status_var.set("Ready - Click 'Test API Connection' to verify your API key")
+        status_bar = ttk.Label(
             self.root, 
             textvariable=self.status_var,
             relief=tk.SUNKEN,
             anchor=tk.W
-        ).pack(fill=tk.X)
+        )
+        status_bar.pack(fill=tk.X)
 
     def test_api_connection(self):
-        """Test if API key is valid"""
-        url = "https://www.eventbriteapi.com/v3/users/me/"
+        """Test if API key is valid using a simple endpoint"""
+        self.status_var.set("Testing API connection...")
+        self.root.update()
+        
+        # Try a simple organizations endpoint first
+        url = "https://www.eventbriteapi.com/v3/organizations/"
+        
         try:
             response = requests.get(
                 url,
@@ -91,26 +115,57 @@ class EventFinder:
                     "Authorization": f"Bearer {self.API_KEY}",
                     "Content-Type": "application/json"
                 },
-                timeout=5
+                timeout=10
             )
             
             if response.status_code == 200:
-                self.status_var.set("API Connected")
-                return True
+                data = response.json()
+                if data.get('organizations'):
+                    org_name = data['organizations'][0].get('name', 'Unknown')
+                    self.status_var.set(f"API Connected - Organization: {org_name}")
+                    return True
+                else:
+                    self.status_var.set("API Connected but no organizations found")
+                    return True
+            elif response.status_code == 401:
+                self.status_var.set("API Error: Invalid API key (401 Unauthorized)")
+                messagebox.showerror("API Error", "Your API key appears to be invalid or expired.")
+                return False
+            elif response.status_code == 403:
+                self.status_var.set("API Error: Access forbidden (403)")
+                messagebox.showerror("API Error", "Access forbidden. Check your API key permissions.")
+                return False
             else:
-                self.status_var.set(f"API Error: {response.status_code}")
+                error_msg = self.get_error_message(response)
+                self.status_var.set(f"API Error: {response.status_code} - {error_msg}")
                 return False
                 
-        except Exception as e:
-            self.status_var.set(f"Connection Failed: {str(e)}")
+        except requests.exceptions.Timeout:
+            self.status_var.set("Connection timeout - check your internet connection")
             return False
+        except requests.exceptions.ConnectionError:
+            self.status_var.set("Connection failed - check your internet connection")
+            return False
+        except Exception as e:
+            self.status_var.set(f"Connection error: {str(e)}")
+            return False
+
+    def get_error_message(self, response):
+        """Extract error message from response"""
+        try:
+            data = response.json()
+            return data.get('error_description', data.get('error', 'Unknown error'))
+        except:
+            return response.text[:100] if response.text else 'Unknown error'
 
     def search_events(self):
         location = self.location_entry.get().strip()
+        keywords = self.keywords_entry.get().strip()
         category = self.category_combo.get().strip()
         
         if not location:
             self.status_var.set("Please enter a location")
+            messagebox.showwarning("Missing Information", "Please enter a location to search for events.")
             return
             
         # Clear previous results
@@ -120,12 +175,17 @@ class EventFinder:
         self.status_var.set("Searching events...")
         self.root.update()  # Force UI update
         
+        # Build search parameters
         params = {
             "location.address": location,
-            "expand": "venue,price",
-            "sort_by": "date"
+            "expand": "venue",
+            "sort_by": "date",
+            "page_size": 20
         }
         
+        if keywords:
+            params["q"] = keywords
+            
         if category:
             params["categories"] = category
             
@@ -137,42 +197,62 @@ class EventFinder:
                     "Content-Type": "application/json"
                 },
                 params=params,
-                timeout=10
+                timeout=15
             )
             
             if response.status_code == 200:
                 self.display_events(response.json())
+            elif response.status_code == 401:
+                self.status_var.set("API Error: Unauthorized - Check your API key")
+                messagebox.showerror("API Error", "Unauthorized access. Please check your API key.")
+            elif response.status_code == 404:
+                self.status_var.set("API Error: Endpoint not found (404)")
+                messagebox.showerror("API Error", 
+                    "The events search endpoint returned 404. This might indicate:\n"
+                    "• The API endpoint has changed\n"
+                    "• Your API key doesn't have proper permissions\n"
+                    "• The location format is incorrect")
             else:
-                error = response.json().get('error_description', 'Unknown error')
-                self.status_var.set(f"Error {response.status_code}: {error}")
+                error_msg = self.get_error_message(response)
+                self.status_var.set(f"Error {response.status_code}: {error_msg}")
+                messagebox.showerror("API Error", f"Error {response.status_code}: {error_msg}")
                 
+        except requests.exceptions.Timeout:
+            self.status_var.set("Request timeout - try again")
+            messagebox.showerror("Timeout", "The request timed out. Please try again.")
         except requests.exceptions.RequestException as e:
             self.status_var.set(f"Network error: {str(e)}")
+            messagebox.showerror("Network Error", f"Network error: {str(e)}")
 
     def display_events(self, data):
         events = data.get("events", [])
         
         if not events:
-            self.status_var.set("No events found")
+            self.status_var.set("No events found for your search")
+            messagebox.showinfo("No Results", "No events found matching your criteria. Try:\n• Different location\n• Different keywords\n• Different category")
             return
             
-        for event in events[:20]:  # Show first 20 events
+        for event in events:
             name = event.get("name", {}).get("text", "Untitled Event")
             
             # Format date
-            start = event.get("start", {}).get("local")
+            start = event.get("start", {}).get("local", "")
             date_str = self.format_date(start) if start else "Date not specified"
             
             # Get venue
-            venue = event.get("venue", {})
-            venue_name = venue.get("name", "Online Event") if venue else "Online Event"
+            venue_name = "Online Event"
+            if event.get("venue"):
+                venue_name = event["venue"].get("name", "Venue not specified")
+            elif event.get("online_event", False):
+                venue_name = "Online Event"
             
-            # Get price
-            price = "Free"
-            if event.get("is_free", False) is False:
-                price_data = event.get("price", {})
-                if price_data and "value" in price_data:
-                    price = f"${price_data['value']} {price_data.get('currency', '')}"
+            # Get price - this is often not available in search results
+            price = "See event page"
+            if event.get("is_free", False):
+                price = "Free"
+            elif event.get("ticket_availability", {}).get("minimum_ticket_price"):
+                min_price = event["ticket_availability"]["minimum_ticket_price"]
+                price = f"From ${min_price.get('major_value', 0)}"
             
             self.tree.insert(
                 "", tk.END, 
@@ -180,14 +260,28 @@ class EventFinder:
                 values=(date_str, venue_name, price)
             )
             
-        self.status_var.set(f"Found {len(events)} events. Showing first {min(20, len(events))}")
+        total_events = data.get("pagination", {}).get("object_count", len(events))
+        self.status_var.set(f"Found {total_events} events. Showing {len(events)} results")
 
     def format_date(self, date_str):
+        """Format date string for display"""
+        if not date_str:
+            return "Date not specified"
+            
         try:
-            dt = datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S")
+            # Handle different date formats
+            if 'T' in date_str:
+                dt = datetime.strptime(date_str.split('T')[0] + 'T' + date_str.split('T')[1][:8], "%Y-%m-%dT%H:%M:%S")
+            else:
+                dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
             return dt.strftime("%b %d, %Y %I:%M %p")
         except ValueError:
-            return date_str
+            try:
+                # Try without time
+                dt = datetime.strptime(date_str.split('T')[0], "%Y-%m-%d")
+                return dt.strftime("%b %d, %Y")
+            except ValueError:
+                return date_str
 
 if __name__ == "__main__":
     root = tk.Tk()
