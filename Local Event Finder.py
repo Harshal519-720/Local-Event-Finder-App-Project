@@ -1,64 +1,77 @@
-
 import tkinter as tk
 import requests
 
-
+# --- Setup main window
 root = tk.Tk()
 root.title("Local Event Finder")
 
+# --- Input area: city
+tk.Label(root, text="Enter City or ZIP Code:", font=("Arial", 16)).pack(pady=(10, 0))
+city_entry = tk.Entry(root, font=("Arial", 14))
+city_entry.pack(pady=(0, 10))
 
-city_label = tk.Label(root, text="Enter City/Zip Code:", font=("Poppins", 16))
-city_label.pack()
+# --- Output area: scrollable Text box
+results_box = tk.Text(root, height=20, width=80, font=("Arial", 12))
+results_box.pack(padx=10, pady=10)
+results_box.config(state=tk.DISABLED)
 
-
-city_entry = tk.Entry(root)
-city_entry.pack()
-
-
-results_box = tk.Text(root, height=20, width=80, font=("Poppins", 12))
-results_box.pack(pady=10)
-results_box.delete("1.0", tk.END)
-
+# --- Function to call Eventbrite and display results
 def get_eventbrite_events(city_name):
-    url = "https://www.eventbriteapi.com/v3/events/search/"
-    
-    params = {
-    "location.address": city_name,
-    "expand": "venue",
-    "q": "music",  # ← Event category/keyword required
-    "page": 1,
-}
+    # Clear previous results
+    results_box.config(state=tk.NORMAL)
+    results_box.delete("1.0", tk.END)
 
+    url = "https://www.eventbriteapi.com/v3/events/search/"
     headers = {
-        "Authorization": "Bearer LD2HCX4QS7OHAQJC44U7"  
+        "Authorization": "Bearer YOUR_PERSONAL_OAUTH_TOKEN"
+    }
+    params = {
+        "location.address": city_name,
+        "q": "music",       # You can change this to another category
+        "expand": "venue",
+        "page": 1,
     }
 
     response = requests.get(url, headers=headers, params=params)
 
+    # Handle the response
     if response.status_code == 200:
         data = response.json()
+        events = data.get("events", [])
 
-        for event in data["events"]:
-            name = event["name"]["text"]
-            date = event["start"]["local"]
-            venue = event["venue"]["name"]
-            event_info = f"Event: {name}\nDate: {date}\nVenue: {venue}\n\n"
-            results_box.insert(tk.END, event_info)
+        if not events:
+            results_box.insert(tk.END, "No events found.\n")
+        else:
+            for event in events[:10]:  # limit to first 10
+                name = event["name"].get("text", "No title")
+                date = event["start"].get("local", "No date")
+                venue_name = (
+                    event.get("venue", {}).get("name") or "Venue not provided"
+                )
+                results_box.insert(
+                    tk.END,
+                    f"Event: {name}\n"
+                    f"Date: {date}\n"
+                    f"Venue: {venue_name}\n"
+                    "\u2014" * 40 + "\n"
+                )
     else:
-        print("Failed to fetch data:", response.status_code)
+        results_box.insert(tk.END, f"Error: {response.status_code} - network/API issue.\n")
 
+    results_box.config(state=tk.DISABLED)
 
-
+# --- Button logic
 def handle_search():
-    user_input = city_entry.get()
-    print("You entered:", user_input)
-    get_eventbrite_events(user_input)
+    city = city_entry.get().strip()
+    if city:
+        get_eventbrite_events(city)
+    else:
+        results_box.config(state=tk.NORMAL)
+        results_box.delete("1.0", tk.END)
+        results_box.insert(tk.END, "Please enter a city or ZIP code.\n")
+        results_box.config(state=tk.DISABLED)
 
+tk.Button(root, text="Search Events", command=handle_search, font=("Arial", 14), bg="#4CAF50", fg="white").pack(pady=(0, 15))
 
-search_button = tk.Button(root, text="Search Events", command=handle_search)
-search_button.pack()
-
-
-
-
+# --- Start the app
 root.mainloop()
