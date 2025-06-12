@@ -1,195 +1,195 @@
 import tkinter as tk
+from tkinter import ttk
 import requests
+from datetime import datetime
 
-class EventFinderApp:
+class EventFinder:
     def __init__(self, root):
         self.root = root
-        self.root.title("Local Event Finder v2.0")
+        self.root.title("Event Finder Pro")
+        self.root.geometry("900x700")
         
-        # Configure API - Using your 50-character key
+        # Use your 50-character API key
         self.API_KEY = "6CGROMFISJVD5Z5IQ3VEHSGF4CKXJFFRMGDEMNNLUBLR7H2DJ7"
         
-        self.setup_ui()
-    
-    def setup_ui(self):
-        # Styling
-        self.root.configure(bg="#f0f0f0")
-        title_font = ("Arial", 18, "bold")
-        button_style = {
-            "font": ("Arial", 12),
-            "bg": "#4CAF50",
-            "fg": "white",
-            "activebackground": "#45a049",
-            "borderwidth": 2,
-            "relief": "groove"
-        }
+        self.create_widgets()
         
-        # Input area
-        tk.Label(
-            self.root, 
-            text="Enter City or Location:", 
-            font=title_font, 
-            bg="#f0f0f0"
-        ).pack(pady=(15, 5))
+        # Test API connection on startup
+        self.test_api_connection()
+
+    def create_widgets(self):
+        # Main container
+        main_frame = ttk.Frame(self.root, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
         
-        self.city_entry = tk.Entry(
-            self.root, 
-            font=("Arial", 14), 
-            width=40,
-            relief="sunken",
-            borderwidth=2
+        # Search frame
+        search_frame = ttk.LabelFrame(main_frame, text="Search Parameters", padding="10")
+        search_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(search_frame, text="Location:").grid(row=0, column=0, sticky=tk.W)
+        self.location_entry = ttk.Entry(search_frame, width=40)
+        self.location_entry.grid(row=0, column=1, padx=5)
+        
+        ttk.Label(search_frame, text="Category:").grid(row=1, column=0, sticky=tk.W)
+        self.category_combo = ttk.Combobox(search_frame, values=[
+            "", "music", "business", "food", "arts", "sports"
+        ])
+        self.category_combo.grid(row=1, column=1, padx=5, pady=5, sticky=tk.W)
+        
+        search_btn = ttk.Button(
+            search_frame, 
+            text="Find Events", 
+            command=self.search_events
         )
-        self.city_entry.pack(pady=(0, 15))
+        search_btn.grid(row=2, column=0, columnspan=2, pady=10)
         
-        # Search button
-        self.search_btn = tk.Button(
-            self.root, 
-            text="🔍 Find Events", 
-            command=self.handle_search,
-            **button_style
+        # Results frame
+        results_frame = ttk.LabelFrame(main_frame, text="Event Results", padding="10")
+        results_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Treeview for results
+        self.tree = ttk.Treeview(
+            results_frame, 
+            columns=("date", "venue", "price"), 
+            show="headings",
+            height=15
         )
-        self.search_btn.pack(pady=(0, 20))
         
-        # Output area with scrollbar
-        frame = tk.Frame(self.root, bg="#f0f0f0")
-        frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        self.tree.heading("#0", text="Event")
+        self.tree.heading("date", text="Date")
+        self.tree.heading("venue", text="Venue")
+        self.tree.heading("price", text="Price")
         
-        scrollbar = tk.Scrollbar(frame)
+        self.tree.column("#0", width=300, stretch=tk.YES)
+        self.tree.column("date", width=150)
+        self.tree.column("venue", width=200)
+        self.tree.column("price", width=100)
+        
+        scrollbar = ttk.Scrollbar(results_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scrollbar.set)
+        
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        self.results_box = tk.Text(
-            frame,
-            height=20,
-            width=80,
-            font=("Consolas", 11),
-            wrap=tk.WORD,
-            yscrollcommand=scrollbar.set,
-            padx=10,
-            pady=10,
-            state=tk.DISABLED
-        )
-        self.results_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.config(command=self.results_box.yview)
-        
         # Status bar
-        self.status = tk.Label(
-            self.root,
-            text="Ready",
-            bd=1,
+        self.status_var = tk.StringVar()
+        self.status_var.set("Ready")
+        ttk.Label(
+            self.root, 
+            textvariable=self.status_var,
             relief=tk.SUNKEN,
-            anchor=tk.W,
-            bg="#e0e0e0"
-        )
-        self.status.pack(fill=tk.X, padx=5, pady=5)
-    
-    def handle_search(self):
-        city = self.city_entry.get().strip()
-        if city:
-            self.search_btn.config(state=tk.DISABLED, text="Searching...")
-            self.root.update()  # Force UI update
-            self.search_events(city)
-            self.search_btn.config(state=tk.NORMAL, text="🔍 Find Events")
-        else:
-            self.show_message("⚠️ Please enter a location", "red")
-    
-    def search_events(self, location):
-        self.clear_results()
-        self.update_status(f"Searching events in {location}...")
+            anchor=tk.W
+        ).pack(fill=tk.X)
+
+    def test_api_connection(self):
+        """Test if API key is valid"""
+        url = "https://www.eventbriteapi.com/v3/users/me/"
+        try:
+            response = requests.get(
+                url,
+                headers={
+                    "Authorization": f"Bearer {self.API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                timeout=5
+            )
+            
+            if response.status_code == 200:
+                self.status_var.set("API Connected")
+                return True
+            else:
+                self.status_var.set(f"API Error: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            self.status_var.set(f"Connection Failed: {str(e)}")
+            return False
+
+    def search_events(self):
+        location = self.location_entry.get().strip()
+        category = self.category_combo.get().strip()
         
+        if not location:
+            self.status_var.set("Please enter a location")
+            return
+            
+        # Clear previous results
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+            
+        self.status_var.set("Searching events...")
+        self.root.update()  # Force UI update
+        
+        params = {
+            "location.address": location,
+            "expand": "venue,price",
+            "sort_by": "date"
+        }
+        
+        if category:
+            params["categories"] = category
+            
         try:
             response = requests.get(
                 "https://www.eventbriteapi.com/v3/events/search/",
-                headers={"Authorization": f"Bearer {self.API_KEY}"},
-                params={
-                    "location.address": location,
-                    "expand": "venue,organizer",
-                    "sort_by": "date",
+                headers={
+                    "Authorization": f"Bearer {self.API_KEY}",
+                    "Content-Type": "application/json"
                 },
-                timeout=10  # 10 second timeout
+                params=params,
+                timeout=10
             )
             
             if response.status_code == 200:
                 self.display_events(response.json())
-                self.update_status(f"Found {len(response.json().get('events', []))} events", "green")
             else:
-                error = response.json().get('error_description', 'Unknown API error')
-                self.show_message(f"❌ Error {response.status_code}: {error}", "red")
-                self.update_status(f"API Error: {error}", "red")
+                error = response.json().get('error_description', 'Unknown error')
+                self.status_var.set(f"Error {response.status_code}: {error}")
                 
         except requests.exceptions.RequestException as e:
-            self.show_message(f"⚠️ Network error: {str(e)}", "red")
-            self.update_status("Connection failed", "red")
-    
+            self.status_var.set(f"Network error: {str(e)}")
+
     def display_events(self, data):
         events = data.get("events", [])
         
         if not events:
-            self.show_message("ℹ️ No events found for this location", "blue")
+            self.status_var.set("No events found")
             return
             
-        self.results_box.config(state=tk.NORMAL)
-        for idx, event in enumerate(events[:15], 1):  # Show first 15 events
-            self.results_box.insert(tk.END, self.format_event(event, idx))
-        self.results_box.config(state=tk.DISABLED)
-    
-    def format_event(self, event, index):
-        name = event.get("name", {}).get("text", "Untitled Event")
-        date = self.format_date(event.get("start", {}).get("local"))
-        venue = event.get("venue", {})
-        organizer = event.get("organizer", {}).get("name", "Unknown organizer")
-        
-        venue_info = ""
-        if venue:
-            venue_info = f"{venue.get('name', 'Unknown venue')}"
-            if venue.get('address', {}).get('localized_address_display'):
-                venue_info += f" | {venue['address']['localized_address_display']}"
-        
-        return (
-            f"🏷️ EVENT #{index}\n"
-            f"📌 {name}\n"
-            f"🗓️ {date}\n"
-            f"🏛️ {venue_info if venue_info else 'Online event'}\n"
-            f"👤 {organizer}\n"
-            f"{'-'*60}\n\n"
-        )
-    
+        for event in events[:20]:  # Show first 20 events
+            name = event.get("name", {}).get("text", "Untitled Event")
+            
+            # Format date
+            start = event.get("start", {}).get("local")
+            date_str = self.format_date(start) if start else "Date not specified"
+            
+            # Get venue
+            venue = event.get("venue", {})
+            venue_name = venue.get("name", "Online Event") if venue else "Online Event"
+            
+            # Get price
+            price = "Free"
+            if event.get("is_free", False) is False:
+                price_data = event.get("price", {})
+                if price_data and "value" in price_data:
+                    price = f"${price_data['value']} {price_data.get('currency', '')}"
+            
+            self.tree.insert(
+                "", tk.END, 
+                text=name,
+                values=(date_str, venue_name, price)
+            )
+            
+        self.status_var.set(f"Found {len(events)} events. Showing first {min(20, len(events))}")
+
     def format_date(self, date_str):
-        if not date_str:
-            return "Date not specified"
-        from datetime import datetime
         try:
             dt = datetime.strptime(date_str, "%Y-%m-%dT%H:%M:%S")
-            return dt.strftime("%a, %b %d %Y at %I:%M %p")
+            return dt.strftime("%b %d, %Y %I:%M %p")
         except ValueError:
             return date_str
-    
-    def clear_results(self):
-        self.results_box.config(state=tk.NORMAL)
-        self.results_box.delete("1.0", tk.END)
-        self.results_box.config(state=tk.DISABLED)
-    
-    def show_message(self, message, color="black"):
-        self.clear_results()
-        self.results_box.config(state=tk.NORMAL)
-        self.results_box.tag_config("color", foreground=color)
-        self.results_box.insert(tk.END, message + "\n", "color")
-        self.results_box.config(state=tk.DISABLED)
-    
-    def update_status(self, message, color="black"):
-        self.status.config(text=message, fg=color)
 
-# Run the application
 if __name__ == "__main__":
     root = tk.Tk()
-    app = EventFinderApp(root)
-    
-    # Center the window
-    window_width = 900
-    window_height = 700
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-    x = (screen_width // 2) - (window_width // 2)
-    y = (screen_height // 2) - (window_height // 2)
-    root.geometry(f"{window_width}x{window_height}+{x}+{y}")
-    
+    app = EventFinder(root)
     root.mainloop()
