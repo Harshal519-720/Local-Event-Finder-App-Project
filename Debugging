@@ -1,0 +1,6 @@
+import requests
+response = requests.get(
+    "https://www.eventbriteapi.com/v3/users/me/",
+    headers={"Authorization": "Bearer MSZSHQFXU6S14DS4D5E7"}
+)
+print(response.json())
