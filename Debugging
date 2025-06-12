@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
+import random
 
 class EventFinder:
     def __init__(self, root):
@@ -10,18 +11,38 @@ class EventFinder:
         self.root.title("Event Finder Pro")
         self.root.geometry("900x700")
         
-        # Use your API key - make sure it's valid and has proper permissions
-        self.API_KEY = "6CGROMFISJVD5Z5IQ3VEHSGF4CKXJFFRMGDEMNNLUBLR7H2DJ7"
+        # API key placeholder - replace with your valid key
+        self.API_KEY = "YOUR_API_KEY_HERE"
+        self.use_mock_data = True  # Set to False when you have a valid API key
         
         self.create_widgets()
         
-        # Test API connection on startup
-        self.test_api_connection()
+        if not self.use_mock_data:
+            self.test_api_connection()
+        else:
+            self.status_var.set("Running in demo mode with sample data")
 
     def create_widgets(self):
         # Main container
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # API Key frame
+        api_frame = ttk.LabelFrame(main_frame, text="API Configuration", padding="10")
+        api_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(api_frame, text="API Key:").grid(row=0, column=0, sticky=tk.W)
+        self.api_key_entry = ttk.Entry(api_frame, width=60, show="*")
+        self.api_key_entry.grid(row=0, column=1, padx=5)
+        self.api_key_entry.insert(0, self.API_KEY)
+        
+        update_key_btn = ttk.Button(api_frame, text="Update API Key", command=self.update_api_key)
+        update_key_btn.grid(row=0, column=2, padx=5)
+        
+        self.mock_var = tk.BooleanVar(value=self.use_mock_data)
+        mock_check = ttk.Checkbutton(api_frame, text="Use demo data (no API required)", 
+                                   variable=self.mock_var, command=self.toggle_mock_mode)
+        mock_check.grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=5)
         
         # Search frame
         search_frame = ttk.LabelFrame(main_frame, text="Search Parameters", padding="10")
@@ -30,7 +51,7 @@ class EventFinder:
         ttk.Label(search_frame, text="Location:").grid(row=0, column=0, sticky=tk.W)
         self.location_entry = ttk.Entry(search_frame, width=40)
         self.location_entry.grid(row=0, column=1, padx=5)
-        self.location_entry.insert(0, "New York, NY")  # Default location
+        self.location_entry.insert(0, "New York, NY")
         
         ttk.Label(search_frame, text="Keywords:").grid(row=1, column=0, sticky=tk.W)
         self.keywords_entry = ttk.Entry(search_frame, width=40)
@@ -38,28 +59,25 @@ class EventFinder:
         
         ttk.Label(search_frame, text="Category:").grid(row=2, column=0, sticky=tk.W)
         self.category_combo = ttk.Combobox(search_frame, values=[
-            "", "103", "101", "110", "105", "104", "102", "108", "109", "111", "113"
+            "", "Music", "Business", "Food & Drink", "Arts", "Sports", "Technology", "Health"
         ])
         self.category_combo.grid(row=2, column=1, padx=5, pady=5, sticky=tk.W)
-        
-        # Add category explanation
-        category_help = ttk.Label(search_frame, text="(103=Music, 101=Business, 110=Food, 105=Arts, 104=Health, etc.)", font=("Arial", 8))
-        category_help.grid(row=3, column=1, padx=5, sticky=tk.W)
         
         search_btn = ttk.Button(
             search_frame, 
             text="Find Events", 
             command=self.search_events
         )
-        search_btn.grid(row=4, column=0, columnspan=2, pady=10)
+        search_btn.grid(row=3, column=0, columnspan=2, pady=10)
         
-        # API Test button
-        test_btn = ttk.Button(
+        # Test API button (only show when not in mock mode)
+        self.test_btn = ttk.Button(
             search_frame,
             text="Test API Connection",
             command=self.test_api_connection
         )
-        test_btn.grid(row=4, column=2, padx=10)
+        if not self.use_mock_data:
+            self.test_btn.grid(row=3, column=2, padx=10)
         
         # Results frame
         results_frame = ttk.LabelFrame(main_frame, text="Event Results", padding="10")
@@ -91,7 +109,7 @@ class EventFinder:
         
         # Status bar
         self.status_var = tk.StringVar()
-        self.status_var.set("Ready - Click 'Test API Connection' to verify your API key")
+        self.status_var.set("Ready")
         status_bar = ttk.Label(
             self.root, 
             textvariable=self.status_var,
@@ -100,12 +118,83 @@ class EventFinder:
         )
         status_bar.pack(fill=tk.X)
 
+    def update_api_key(self):
+        """Update the API key from the entry field"""
+        new_key = self.api_key_entry.get().strip()
+        if new_key and new_key != "YOUR_API_KEY_HERE":
+            self.API_KEY = new_key
+            self.use_mock_data = False
+            self.mock_var.set(False)
+            self.test_api_connection()
+        else:
+            messagebox.showwarning("Invalid API Key", "Please enter a valid API key")
+
+    def toggle_mock_mode(self):
+        """Toggle between mock data and real API"""
+        self.use_mock_data = self.mock_var.get()
+        if self.use_mock_data:
+            self.status_var.set("Demo mode enabled - using sample data")
+            self.test_btn.grid_remove()
+        else:
+            self.test_btn.grid(row=3, column=2, padx=10)
+            self.status_var.set("Ready to test API connection")
+
+    def generate_mock_events(self, location, keywords, category):
+        """Generate mock event data for testing"""
+        event_names = [
+            "Summer Music Festival", "Tech Conference 2025", "Food & Wine Expo", 
+            "Art Gallery Opening", "Business Networking Event", "Yoga Workshop",
+            "Comedy Night", "Book Club Meeting", "Photography Workshop",
+            "Cooking Class", "Dance Performance", "Charity Fundraiser"
+        ]
+        
+        venues = [
+            "Central Park", "Convention Center", "City Hall", "Community Center",
+            "Art Museum", "Downtown Hotel", "Local Theater", "Sports Complex",
+            "Library", "Cultural Center", "Rooftop Venue", "Outdoor Plaza"
+        ]
+        
+        prices = ["Free", "$15", "$25", "$50", "$75", "$100", "See event page"]
+        
+        events = []
+        num_events = random.randint(5, 15)
+        
+        for i in range(num_events):
+            # Generate random future date
+            days_ahead = random.randint(1, 90)
+            event_date = datetime.now() + timedelta(days=days_ahead)
+            
+            event = {
+                "name": random.choice(event_names) + f" {random.randint(1, 50)}",
+                "date": event_date.strftime("%b %d, %Y %I:%M %p"),
+                "venue": random.choice(venues),
+                "price": random.choice(prices)
+            }
+            
+            # Filter by category if specified
+            if category:
+                if category.lower() in event["name"].lower():
+                    events.append(event)
+                elif random.random() < 0.3:  # 30% chance to include anyway
+                    events.append(event)
+            else:
+                events.append(event)
+                
+            # Filter by keywords if specified
+            if keywords and keywords.lower() not in event["name"].lower():
+                if random.random() < 0.5:  # 50% chance to exclude
+                    continue
+        
+        return events[:12]  # Return max 12 events
+
     def test_api_connection(self):
-        """Test if API key is valid using a simple endpoint"""
+        """Test if API key is valid"""
+        if self.use_mock_data:
+            return True
+            
         self.status_var.set("Testing API connection...")
         self.root.update()
         
-        # Try a simple organizations endpoint first
         url = "https://www.eventbriteapi.com/v3/organizations/"
         
         try:
@@ -129,24 +218,21 @@ class EventFinder:
                     return True
             elif response.status_code == 401:
                 self.status_var.set("API Error: Invalid API key (401 Unauthorized)")
-                messagebox.showerror("API Error", "Your API key appears to be invalid or expired.")
-                return False
-            elif response.status_code == 403:
-                self.status_var.set("API Error: Access forbidden (403)")
-                messagebox.showerror("API Error", "Access forbidden. Check your API key permissions.")
+                messagebox.showerror("API Error", 
+                    "Your API key is invalid or expired.\n\n"
+                    "To get a valid API key:\n"
+                    "1. Go to https://www.eventbrite.com/platform/api-keys\n"
+                    "2. Sign in to your Eventbrite account\n"
+                    "3. Create a new app/API key\n"
+                    "4. Copy the key and paste it above\n\n"
+                    "Or check 'Use demo data' to test without API key.")
                 return False
             else:
                 error_msg = self.get_error_message(response)
                 self.status_var.set(f"API Error: {response.status_code} - {error_msg}")
                 return False
                 
-        except requests.exceptions.Timeout:
-            self.status_var.set("Connection timeout - check your internet connection")
-            return False
-        except requests.exceptions.ConnectionError:
-            self.status_var.set("Connection failed - check your internet connection")
-            return False
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             self.status_var.set(f"Connection error: {str(e)}")
             return False
 
@@ -173,9 +259,18 @@ class EventFinder:
             self.tree.delete(item)
             
         self.status_var.set("Searching events...")
-        self.root.update()  # Force UI update
+        self.root.update()
         
-        # Build search parameters
+        if self.use_mock_data:
+            # Use mock data
+            events = self.generate_mock_events(location, keywords, category)
+            self.display_mock_events(events)
+        else:
+            # Use real API
+            self.search_real_events(location, keywords, category)
+
+    def search_real_events(self, location, keywords, category):
+        """Search using real Eventbrite API"""
         params = {
             "location.address": location,
             "expand": "venue",
@@ -186,8 +281,14 @@ class EventFinder:
         if keywords:
             params["q"] = keywords
             
-        if category:
-            params["categories"] = category
+        # Map category names to IDs (you may need to adjust these)
+        category_map = {
+            "Music": "103", "Business": "101", "Food & Drink": "110",
+            "Arts": "105", "Sports": "108", "Technology": "102", "Health": "107"
+        }
+        
+        if category and category in category_map:
+            params["categories"] = category_map[category]
             
         try:
             response = requests.get(
@@ -205,31 +306,34 @@ class EventFinder:
             elif response.status_code == 401:
                 self.status_var.set("API Error: Unauthorized - Check your API key")
                 messagebox.showerror("API Error", "Unauthorized access. Please check your API key.")
-            elif response.status_code == 404:
-                self.status_var.set("API Error: Endpoint not found (404)")
-                messagebox.showerror("API Error", 
-                    "The events search endpoint returned 404. This might indicate:\n"
-                    "• The API endpoint has changed\n"
-                    "• Your API key doesn't have proper permissions\n"
-                    "• The location format is incorrect")
             else:
                 error_msg = self.get_error_message(response)
                 self.status_var.set(f"Error {response.status_code}: {error_msg}")
-                messagebox.showerror("API Error", f"Error {response.status_code}: {error_msg}")
                 
-        except requests.exceptions.Timeout:
-            self.status_var.set("Request timeout - try again")
-            messagebox.showerror("Timeout", "The request timed out. Please try again.")
         except requests.exceptions.RequestException as e:
             self.status_var.set(f"Network error: {str(e)}")
-            messagebox.showerror("Network Error", f"Network error: {str(e)}")
+
+    def display_mock_events(self, events):
+        """Display mock events in the tree view"""
+        if not events:
+            self.status_var.set("No events found for your search")
+            return
+            
+        for event in events:
+            self.tree.insert(
+                "", tk.END,
+                text=event["name"],
+                values=(event["date"], event["venue"], event["price"])
+            )
+            
+        self.status_var.set(f"Found {len(events)} demo events (sample data)")
 
     def display_events(self, data):
+        """Display real events from API"""
         events = data.get("events", [])
         
         if not events:
             self.status_var.set("No events found for your search")
-            messagebox.showinfo("No Results", "No events found matching your criteria. Try:\n• Different location\n• Different keywords\n• Different category")
             return
             
         for event in events:
@@ -243,19 +347,14 @@ class EventFinder:
             venue_name = "Online Event"
             if event.get("venue"):
                 venue_name = event["venue"].get("name", "Venue not specified")
-            elif event.get("online_event", False):
-                venue_name = "Online Event"
             
-            # Get price - this is often not available in search results
+            # Get price
             price = "See event page"
             if event.get("is_free", False):
                 price = "Free"
-            elif event.get("ticket_availability", {}).get("minimum_ticket_price"):
-                min_price = event["ticket_availability"]["minimum_ticket_price"]
-                price = f"From ${min_price.get('major_value', 0)}"
             
             self.tree.insert(
-                "", tk.END, 
+                "", tk.END,
                 text=name,
                 values=(date_str, venue_name, price)
             )
@@ -269,19 +368,13 @@ class EventFinder:
             return "Date not specified"
             
         try:
-            # Handle different date formats
             if 'T' in date_str:
                 dt = datetime.strptime(date_str.split('T')[0] + 'T' + date_str.split('T')[1][:8], "%Y-%m-%dT%H:%M:%S")
             else:
                 dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
             return dt.strftime("%b %d, %Y %I:%M %p")
         except ValueError:
-            try:
-                # Try without time
-                dt = datetime.strptime(date_str.split('T')[0], "%Y-%m-%d")
-                return dt.strftime("%b %d, %Y")
-            except ValueError:
-                return date_str
+            return date_str
 
 if __name__ == "__main__":
     root = tk.Tk()
