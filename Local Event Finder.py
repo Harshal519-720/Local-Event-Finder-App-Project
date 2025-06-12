@@ -23,7 +23,7 @@ def get_eventbrite_events(city_name):
 
     url = "https://www.eventbriteapi.com/v3/events/search/"
     headers = {
-        "Authorization": "Bearer 6CGROMFISJVD5Z5IQ3VEHSGF4CKXJFFRMGDEMNNLUBLR7H2DJ7"
+        "Authorization": "Bearer HBPV6CMX7RUBJAW2LASH"
     }
     params = {
         "location.address": city_name,
