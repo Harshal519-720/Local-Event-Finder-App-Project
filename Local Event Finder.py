@@ -1,53 +1,59 @@
+import tkinter as tk
 import requests
 from colorama import Fore, init
 
 init(autoreset=True)
 
-# ============================
-# Live Event Fetching (API)
-# ============================
+
 def fetch_live_events(city):
-    API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"  # 🔐 Replace with your real Ticketmaster key
+    API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"
     url = f"https://app.ticketmaster.com/discovery/v2/events.json?apikey={API_KEY}&city={city}&size=5"
 
     try:
         response = requests.get(url)
         data = response.json()
         events = data["_embedded"]["events"]
-        print(Fore.MAGENTA + f"\nTop events in {city.title()}:")
+
+        event_list = []
         for e in events:
             name = e.get("name", "N/A")
             date = e["dates"]["start"].get("localDate", "Unknown")
             time = e["dates"]["start"].get("localTime", "Unknown")
             venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
-            print(Fore.CYAN + f"- {name} at {venue} on {date} {time}")
+            event_list.append(f"{name} at {venue} on {date} {time}")
+        return event_list
+
     except Exception as e:
-        print(Fore.RED + f"Failed to fetch events: {e}")
+        return [f"Error: {e}"]
 
-# ============================
-# Menu
-# ============================
-def main():
-    while True:
-        print(Fore.CYAN + "\n--- Live Event Finder (Ticketmaster API) ---")
-        print("1. Search Events by City")
-        print("2. Exit")
 
-        choice = input("Choose an option: ")
+root = tk.Tk()
+root.title("Eventure")
+root.geometry("600x500")
 
-        if choice == "1":
-            city = input("Enter a city to fetch live events: ")
-            fetch_live_events(city)
+label = tk.Label(root, text="Enter City:")
+label.pack()
 
-        elif choice == "2":
-            print("Goodbye!")
-            break
+city_entry = tk.Entry(root, width=40)
+city_entry.pack(pady=5)
 
-        else:
-            print("Invalid choice. Try again.")
+output = tk.Text(root, height=20, width=70)
+output.pack(pady=10)
 
-# ============================
-# Run App
-# ============================
-if __name__ == "__main__":
-    main()
+def on_search_click():
+    city = city_entry.get()
+    results = fetch_live_events(city)
+
+    output.delete("1.0", tk.END) 
+
+    if results:
+        for line in results:
+            output.insert(tk.END, line + "\n")
+    else:
+        output.insert(tk.END, "No events found.")
+
+search_button = tk.Button(root, text="Search Events", command=on_search_click)
+search_button.pack(pady=5)
+
+
+root.mainloop()
