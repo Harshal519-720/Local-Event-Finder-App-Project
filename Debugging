@@ -7,7 +7,7 @@ init(autoreset=True)
 # Live Event Fetching (API)
 # ============================
 def fetch_live_events(city):
-    API_KEY = "YOUR_API_KEY"  # 🔐 Replace with your real Ticketmaster key
+    API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"  # 🔐 Replace with your real Ticketmaster key
     url = f"https://app.ticketmaster.com/discovery/v2/events.json?apikey={API_KEY}&city={city}&size=5"
 
     try:
