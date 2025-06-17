@@ -8,17 +8,6 @@ import os
 
 init(autoreset=True)
 
-logo_path = "eventure_logo.png"
-if os.path.exists(logo_path):
-    logo_img = Image.open(logo_path)
-    logo_img = logo_img.resize((48, 48))
-    logo_photo = ImageTk.PhotoImage(logo_img)
-
-    logo_label = tk.Label(root, image=logo_photo, bg=light_theme["bg"])
-    logo_label.image = logo_photo
-    logo_label.place(x=20, y=10)
-
-
 light_theme = {
     "bg": "#f7f9fc",
     "fg": "#2e2e2e",
@@ -41,6 +30,18 @@ dark_theme = {
 
 current_theme = "light"
 
+root = tk.Tk()
+root.title("Eventure")
+root.geometry("720x660")
+
+logo_path = "eventure_logo.png"
+if os.path.exists(logo_path):
+    logo_img = Image.open(logo_path)
+    logo_img = logo_img.resize((48, 48))
+    logo_photo = ImageTk.PhotoImage(logo_img)
+    logo_label = tk.Label(root, image=logo_photo, bg=light_theme["bg"])
+    logo_label.image = logo_photo
+    logo_label.place(x=20, y=10)
 
 def fetch_live_events(city):
     API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"
@@ -59,34 +60,28 @@ def fetch_live_events(city):
             venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
 
             try:
-                date = datetime.strptime(
-                    raw_date, "%Y-%m-%d").strftime("%B %d, %Y")
+                date = datetime.strptime(raw_date, "%Y-%m-%d").strftime("%B %d, %Y")
             except:
                 date = raw_date
 
             try:
-                time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(
-                    raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
+                time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
                 time = time_obj.strftime("%I:%M %p")
             except:
                 time = raw_time
 
-            event_list.append(
-                f"\u2728 {name}\n\U0001F3AD Venue: {venue}\n\U0001F4C5 Date: {date}\n\u23F0 Time: {time}\n{'-'*40}")
+            event_list.append(f"\u2728 {name}\n\U0001F3AD Venue: {venue}\n\U0001F4C5 Date: {date}\n\u23F0 Time: {time}\n{'-'*40}")
         return event_list
 
     except Exception as e:
         return [f"Error: {e}"]
 
-
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
-
 def rgb_to_hex(rgb):
     return "#{:02x}{:02x}{:02x}".format(*rgb)
-
 
 def fade_bg(start_hex, end_hex, steps=10, delay=30):
     start_rgb = hex_to_rgb(start_hex)
@@ -104,55 +99,44 @@ def fade_bg(start_hex, end_hex, steps=10, delay=30):
 
     step(0)
 
-
-root = tk.Tk()
-root.title("Eventure")
-root.geometry("720x660")
-
 title_font = tkfont.Font(family="Segoe UI", size=26, weight="bold")
 label_font = tkfont.Font(family="Segoe UI", size=12)
 button_font = tkfont.Font(family="Segoe UI", size=10, weight="bold")
 result_font = tkfont.Font(family="Segoe UI", size=10)
 
 title_label = tk.Label(root, text="Eventure", font=title_font, anchor="w")
-title_label.pack(anchor="nw", padx=20, pady=(10, 0))
+title_label.pack(anchor="nw", padx=80, pady=(10, 0))
 
 label = tk.Label(root, text="Enter City:", font=label_font)
 label.pack(pady=(20, 5))
 
 entry_border = tk.Frame(root, bg="#d0d0d0", bd=1)
 entry_border.pack(pady=5)
-city_entry = tk.Entry(entry_border, font=label_font, width=40, bd=0, relief="flat", bg="white",
-                      fg="#333", highlightthickness=1, highlightbackground="#aaa", insertbackground="#333")
+city_entry = tk.Entry(entry_border, font=label_font, width=40, bd=0, relief="flat", bg="white", fg="#333", highlightthickness=1, highlightbackground="#aaa", insertbackground="#333")
 city_entry.pack(padx=3, pady=3)
 
 output_frame = tk.Frame(root, bd=1, relief="solid")
 output_frame.pack(pady=10, padx=20, fill="both", expand=True)
 
-output = tk.Text(output_frame, height=20, width=80,
-                 font=result_font, wrap="word", bd=0, padx=10, pady=10)
+output = tk.Text(output_frame, height=20, width=80, font=result_font, wrap="word", bd=0, padx=10, pady=10)
 output.pack(side="left", fill="both", expand=True)
 
 scrollbar = tk.Scrollbar(output_frame, command=output.yview)
 scrollbar.pack(side="right", fill="y")
 output.config(yscrollcommand=scrollbar.set)
 
-
 def apply_theme(theme):
     root.config(bg=theme["bg"])
     title_label.config(bg=theme["bg"], fg=theme["fg"])
     label.config(bg=theme["bg"], fg=theme["fg"])
     entry_border.config(bg=theme["bg"])
-    city_entry.config(bg=theme["entry_bg"],
-                      fg=theme["fg"], insertbackground=theme["fg"])
-    output.config(bg=theme["text_bg"], fg=theme["text_fg"],
-                  insertbackground=theme["text_fg"])
+    city_entry.config(bg=theme["entry_bg"], fg=theme["fg"], insertbackground=theme["fg"])
+    output.config(bg=theme["text_bg"], fg=theme["text_fg"], insertbackground=theme["text_fg"])
     output_frame.config(bg=theme["bg"])
-    search_button.config(bg=theme["button_bg"], fg=theme["button_fg"],
-                         activebackground=theme["button_bg"], activeforeground=theme["button_fg"])
-    theme_button.config(bg=theme["button_bg"], fg=theme["button_fg"],
-                        activebackground=theme["button_bg"], activeforeground=theme["button_fg"])
-
+    search_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"], activeforeground=theme["button_fg"])
+    theme_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"], activeforeground=theme["button_fg"])
+    if 'logo_label' in globals():
+        logo_label.config(bg=theme["bg"])
 
 def switch_theme():
     global current_theme
@@ -165,7 +149,6 @@ def switch_theme():
         apply_theme(light_theme)
         current_theme = "light"
 
-
 def on_search_click():
     city = city_entry.get()
     results = fetch_live_events(city)
@@ -176,13 +159,10 @@ def on_search_click():
     else:
         output.insert(tk.END, "\u26A0\ufe0f No events found.")
 
-
-search_button = tk.Button(root, text="Search Events", command=on_search_click, font=button_font, padx=14, pady=6,
-                          bd=0, relief="flat", cursor="hand2", bg="#4B9CD3", fg="white", activebackground="#3A80B1", activeforeground="white")
+search_button = tk.Button(root, text="Search Events", command=on_search_click, font=button_font, padx=14, pady=6, bd=0, relief="flat", cursor="hand2", bg="#4B9CD3", fg="white", activebackground="#3A80B1", activeforeground="white")
 search_button.pack(pady=6)
 
-theme_button = tk.Button(root, text="✨ Switch Theme", command=switch_theme, font=button_font, padx=14, pady=6, bd=0,
-                         relief="flat", cursor="hand2", bg="#4B9CD3", fg="white", activebackground="#3A80B1", activeforeground="white")
+theme_button = tk.Button(root, text="✨ Switch Theme", command=switch_theme, font=button_font, padx=14, pady=6, bd=0, relief="flat", cursor="hand2", bg="#4B9CD3", fg="white", activebackground="#3A80B1", activeforeground="white")
 theme_button.pack(pady=6)
 
 apply_theme(light_theme)
