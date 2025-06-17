@@ -61,13 +61,36 @@ def fetch_live_events(city):
     except Exception as e:
         return [f"Error: {e}"]
 
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip("#")
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2 ,4))
+
+def rgb_to_hex(rgb):
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+def fade_bg(start_hex, end_hex, steps=10, delay=30):
+    start_rgb = hex_to_rgb(start_hex)
+    end_rgb = hex_to_rgb(end_hex)
+
+    def step(i):
+        if i > steps:
+            return
+        r = int(start_rgb[0] + (end_rgb[0] - start_rgb[0]) * i / steps)
+        g = int(start_rgb[1] + (end_rgb[1] - start_rgb[1]) * i / steps)
+        b = int(start_rgb[2] + (end_rgb[2] - start_rgb[2]) * i / steps)
+        color = rgb_to_hex((r, g, b))
+        root.config(bg=color)
+        root.after(delay, lambda: step(i + 1))
+
+    step(0)
+
 root = tk.Tk()
 root.title("Eventure")
 root.geometry("720x660")
 
-title_font = tkfont.Font(family="Helvetica", size=24, weight="bold")
-label_font = tkfont.Font(family="Helvetica", size=12)
-button_font = tkfont.Font(family="Helvetica", size=10, weight="bold")
+title_font = tkfont.Font(family="Segoe UI", size=26, weight="bold")
+label_font = tkfont.Font(family="Segoe UI", size=12)
+button_font = tkfont.Font(family="Segoe UI", size=10, weight="bold")
 result_font = tkfont.Font(family="Segoe UI", size=10)
 
 title_label = tk.Label(root, text="Eventure", font=title_font, anchor="w")
@@ -76,8 +99,10 @@ title_label.pack(anchor="nw", padx=20, pady=(10, 0))
 label = tk.Label(root, text="Enter City:", font=label_font)
 label.pack(pady=(20, 5))
 
-city_entry = tk.Entry(root, font=label_font, width=40, bd=2, relief="groove", highlightbackground="#cccccc")
-city_entry.pack(pady=5)
+entry_border = tk.Frame(root, bg="#d0d0d0", bd=1)
+entry_border.pack(pady=5)
+city_entry = tk.Entry(entry_border, font=label_font, width=40, bd=0, relief="flat", bg="white", fg="#333", highlightthickness=1, highlightbackground="#aaa", insertbackground="#333")
+city_entry.pack(padx=3, pady=3)
 
 output_frame = tk.Frame(root, bd=1, relief="solid")
 output_frame.pack(pady=10, padx=20, fill="both", expand=True)
@@ -93,6 +118,7 @@ def apply_theme(theme):
     root.config(bg=theme["bg"])
     title_label.config(bg=theme["bg"], fg=theme["fg"])
     label.config(bg=theme["bg"], fg=theme["fg"])
+    entry_border.config(bg=theme["bg"])
     city_entry.config(bg=theme["entry_bg"], fg=theme["fg"], insertbackground=theme["fg"])
     output.config(bg=theme["text_bg"], fg=theme["text_fg"], insertbackground=theme["text_fg"])
     output_frame.config(bg=theme["bg"])
@@ -102,9 +128,11 @@ def apply_theme(theme):
 def switch_theme():
     global current_theme
     if current_theme == "light":
+        fade_bg(light_theme["bg"], dark_theme["bg"])
         apply_theme(dark_theme)
         current_theme = "dark"
     else:
+        fade_bg(dark_theme["bg"], light_theme["bg"])
         apply_theme(light_theme)
         current_theme = "light"
 
@@ -118,11 +146,11 @@ def on_search_click():
     else:
         output.insert(tk.END, "\u26A0\ufe0f No events found.")
 
-search_button = tk.Button(root, text="Search Events", command=on_search_click, font=button_font, padx=10, pady=6, bd=0, relief="flat", cursor="hand2")
-search_button.pack(pady=5)
+search_button = tk.Button(root, text="Search Events", command=on_search_click, font=button_font, padx=14, pady=6, bd=0, relief="flat", cursor="hand2", bg="#4B9CD3", fg="white", activebackground="#3A80B1", activeforeground="white")
+search_button.pack(pady=6)
 
-theme_button = tk.Button(root, text="✨ Switch Theme", command=switch_theme, font=button_font, padx=10, pady=6, bd=0, relief="flat", cursor="hand2")
-theme_button.pack(pady=5)
+theme_button = tk.Button(root, text="✨ Switch Theme", command=switch_theme, font=button_font, padx=14, pady=6, bd=0, relief="flat", cursor="hand2", bg="#4B9CD3", fg="white", activebackground="#3A80B1", activeforeground="white")
+theme_button.pack(pady=6)
 
 apply_theme(light_theme)
 
