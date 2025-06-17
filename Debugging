@@ -4,16 +4,20 @@ import requests
 from colorama import init
 from datetime import datetime
 from PIL import Image, ImageTk
+import os
 
 init(autoreset=True)
 
-logo_img = Image.open("eventure_logo.png")
-logo_img = logo_img.resize((48, 48))
-logo_photo = ImageTk.PhotoImage(logo_img)
+logo_path = "eventure_logo.png"
+if os.path.exists(logo_path):
+    logo_img = Image.open(logo_path)
+    logo_img = logo_img.resize((48, 48))
+    logo_photo = ImageTk.PhotoImage(logo_img)
 
-logo_label = tk.Label(root, image=logo_photo, bg=light_theme["bg"])
-logo_label.image = logo_photo
-logo_label.place(x=20, y=10)
+    logo_label = tk.Label(root, image=logo_photo, bg=light_theme["bg"])
+    logo_label.image = logo_photo
+    logo_label.place(x=20, y=10)
+
 
 light_theme = {
     "bg": "#f7f9fc",
