@@ -1,170 +1,111 @@
-import tkinter as tk
-from tkinter import font as tkfont
-import requests
-from colorama import init
-from datetime import datetime
-from PIL import Image, ImageTk
-import os
+# main.py
 
-init(autoreset=True)
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
+from kivy.uix.button import Button
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.gridlayout import GridLayout
+from kivy.core.window import Window
+import requests
+from datetime import datetime
+
+# Set default window size for desktop testing
+Window.size = (360, 640)
 
 light_theme = {
-    "bg": "#f7f9fc",
-    "fg": "#2e2e2e",
-    "entry_bg": "#ffffff",
-    "button_bg": "#3f51b5",
-    "button_fg": "white",
-    "text_bg": "#ffffff",
-    "text_fg": "#2e2e2e"
+    "bg": [0.97, 0.98, 0.99, 1],
+    "fg": [0.18, 0.18, 0.18, 1],
+    "button_bg": [0.25, 0.32, 0.71, 1],
+    "button_fg": [1, 1, 1, 1]
 }
 
 dark_theme = {
-    "bg": "#1e1e1e",
-    "fg": "#e0e0e0",
-    "entry_bg": "#333333",
-    "button_bg": "#5c6bc0",
-    "button_fg": "white",
-    "text_bg": "#2a2a2a",
-    "text_fg": "#f0f0f0"
+    "bg": [0.12, 0.12, 0.12, 1],
+    "fg": [0.88, 0.88, 0.88, 1],
+    "button_bg": [0.36, 0.42, 0.75, 1],
+    "button_fg": [1, 1, 1, 1]
 }
 
-current_theme = "light"
+class EventureApp(App):
+    def build(self):
+        self.current_theme = light_theme
+        self.title = "Eventure"
 
-root = tk.Tk()
-root.title("Eventure")
-root.geometry("720x660")
+        self.layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        self.layout.canvas.before.clear()
 
-logo_path = "eventure_logo.png"
-if os.path.exists(logo_path):
-    logo_img = Image.open(logo_path)
-    logo_img = logo_img.resize((48, 48))
-    logo_photo = ImageTk.PhotoImage(logo_img)
-    logo_label = tk.Label(root, image=logo_photo, bg=light_theme["bg"])
-    logo_label.image = logo_photo
-    logo_label.place(x=20, y=10)
+        self.city_input = TextInput(hint_text='Enter city name', size_hint_y=None, height=50, multiline=False)
+        self.search_button = Button(text='Search Events', size_hint_y=None, height=50, on_press=self.search_events)
+        self.theme_button = Button(text='Toggle Theme', size_hint_y=None, height=50, on_press=self.toggle_theme)
 
-def fetch_live_events(city):
-    API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"
-    url = f"https://app.ticketmaster.com/discovery/v2/events.json?apikey={API_KEY}&city={city}&size=5"
+        self.result_container = GridLayout(cols=1, spacing=10, size_hint_y=None)
+        self.result_container.bind(minimum_height=self.result_container.setter('height'))
 
-    try:
-        response = requests.get(url)
-        data = response.json()
-        events = data["_embedded"]["events"]
+        self.scroll = ScrollView()
+        self.scroll.add_widget(self.result_container)
 
-        event_list = []
-        for e in events:
-            name = e.get("name", "N/A")
-            raw_date = e["dates"]["start"].get("localDate", "Unknown")
-            raw_time = e["dates"]["start"].get("localTime", "Unknown")
-            venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
+        self.layout.add_widget(Label(text='Eventure', font_size=28, size_hint_y=None, height=60))
+        self.layout.add_widget(self.city_input)
+        self.layout.add_widget(self.search_button)
+        self.layout.add_widget(self.theme_button)
+        self.layout.add_widget(self.scroll)
 
-            try:
-                date = datetime.strptime(raw_date, "%Y-%m-%d").strftime("%B %d, %Y")
-            except:
-                date = raw_date
+        self.apply_theme()
+        return self.layout
 
-            try:
-                time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
-                time = time_obj.strftime("%I:%M %p")
-            except:
-                time = raw_time
+    def apply_theme(self):
+        Window.clearcolor = self.current_theme['bg']
+        widgets = [self.layout, self.search_button, self.theme_button, self.city_input]
+        for widget in widgets:
+            widget.background_color = self.current_theme['button_bg']
+            if hasattr(widget, 'color'):
+                widget.color = self.current_theme['fg']
 
-            event_list.append(f"\u2728 {name}\n\U0001F3AD Venue: {venue}\n\U0001F4C5 Date: {date}\n\u23F0 Time: {time}\n{'-'*40}")
-        return event_list
+    def toggle_theme(self, instance):
+        self.current_theme = dark_theme if self.current_theme == light_theme else light_theme
+        self.apply_theme()
 
-    except Exception as e:
-        return [f"Error: {e}"]
-
-def hex_to_rgb(hex_color):
-    hex_color = hex_color.lstrip("#")
-    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-
-def rgb_to_hex(rgb):
-    return "#{:02x}{:02x}{:02x}".format(*rgb)
-
-def fade_bg(start_hex, end_hex, steps=10, delay=30):
-    start_rgb = hex_to_rgb(start_hex)
-    end_rgb = hex_to_rgb(end_hex)
-
-    def step(i):
-        if i > steps:
+    def search_events(self, instance):
+        self.result_container.clear_widgets()
+        city = self.city_input.text.strip()
+        if not city:
+            self.result_container.add_widget(Label(text="\u26A0\ufe0f Please enter a valid city."))
             return
-        r = int(start_rgb[0] + (end_rgb[0] - start_rgb[0]) * i / steps)
-        g = int(start_rgb[1] + (end_rgb[1] - start_rgb[1]) * i / steps)
-        b = int(start_rgb[2] + (end_rgb[2] - start_rgb[2]) * i / steps)
-        color = rgb_to_hex((r, g, b))
-        root.config(bg=color)
-        root.after(delay, lambda: step(i + 1))
 
-    step(0)
+        API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"
+        url = f"https://app.ticketmaster.com/discovery/v2/events.json?apikey={API_KEY}&city={city}&size=5"
 
-title_font = tkfont.Font(family="Segoe UI", size=26, weight="bold")
-label_font = tkfont.Font(family="Segoe UI", size=12)
-button_font = tkfont.Font(family="Segoe UI", size=10, weight="bold")
-result_font = tkfont.Font(family="Segoe UI", size=10)
+        try:
+            response = requests.get(url)
+            data = response.json()
+            if "_embedded" not in data or "events" not in data["_embedded"]:
+                self.result_container.add_widget(Label(text=f"\u26A0\ufe0f No events found for '{city}'."))
+                return
 
-title_label = tk.Label(root, text="Eventure", font=title_font, anchor="w")
-title_label.pack(anchor="nw", padx=80, pady=(10, 0))
+            for e in data["_embedded"]["events"]:
+                name = e.get("name", "N/A")
+                raw_date = e["dates"]["start"].get("localDate", "Unknown")
+                raw_time = e["dates"]["start"].get("localTime", "Unknown")
+                venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
 
-label = tk.Label(root, text="Enter City:", font=label_font)
-label.pack(pady=(20, 5))
+                try:
+                    date = datetime.strptime(raw_date, "%Y-%m-%d").strftime("%B %d, %Y")
+                except:
+                    date = raw_date
 
-entry_border = tk.Frame(root, bg="#d0d0d0", bd=1)
-entry_border.pack(pady=5)
-city_entry = tk.Entry(entry_border, font=label_font, width=40, bd=0, relief="flat", bg="white", fg="#333", highlightthickness=1, highlightbackground="#aaa", insertbackground="#333")
-city_entry.pack(padx=3, pady=3)
+                try:
+                    time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
+                    time = time_obj.strftime("%I:%M %p")
+                except:
+                    time = raw_time
 
-output_frame = tk.Frame(root, bd=1, relief="solid")
-output_frame.pack(pady=10, padx=20, fill="both", expand=True)
+                event_text = f"\u2728 {name}\n\U0001F3AD Venue: {venue}\n\U0001F4C5 Date: {date}\n\u23F0 Time: {time}\n{'-'*40}"
+                self.result_container.add_widget(Label(text=event_text, halign='left', valign='top', text_size=(Window.width - 40, None)))
 
-output = tk.Text(output_frame, height=20, width=80, font=result_font, wrap="word", bd=0, padx=10, pady=10)
-output.pack(side="left", fill="both", expand=True)
+        except Exception as e:
+            self.result_container.add_widget(Label(text=f"\u274C Error: {e}"))
 
-scrollbar = tk.Scrollbar(output_frame, command=output.yview)
-scrollbar.pack(side="right", fill="y")
-output.config(yscrollcommand=scrollbar.set)
-
-def apply_theme(theme):
-    root.config(bg=theme["bg"])
-    title_label.config(bg=theme["bg"], fg=theme["fg"])
-    label.config(bg=theme["bg"], fg=theme["fg"])
-    entry_border.config(bg=theme["bg"])
-    city_entry.config(bg=theme["entry_bg"], fg=theme["fg"], insertbackground=theme["fg"])
-    output.config(bg=theme["text_bg"], fg=theme["text_fg"], insertbackground=theme["text_fg"])
-    output_frame.config(bg=theme["bg"])
-    search_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"], activeforeground=theme["button_fg"])
-    theme_button.config(bg=theme["button_bg"], fg=theme["button_fg"], activebackground=theme["button_bg"], activeforeground=theme["button_fg"])
-    if 'logo_label' in globals():
-        logo_label.config(bg=theme["bg"])
-
-def switch_theme():
-    global current_theme
-    if current_theme == "light":
-        fade_bg(light_theme["bg"], dark_theme["bg"])
-        apply_theme(dark_theme)
-        current_theme = "dark"
-    else:
-        fade_bg(dark_theme["bg"], light_theme["bg"])
-        apply_theme(light_theme)
-        current_theme = "light"
-
-def on_search_click():
-    city = city_entry.get()
-    results = fetch_live_events(city)
-    output.delete("1.0", tk.END)
-    if results:
-        for line in results:
-            output.insert(tk.END, line + "\n")
-    else:
-        output.insert(tk.END, "\u26A0\ufe0f No events found.")
-
-search_button = tk.Button(root, text="Search Events", command=on_search_click, font=button_font, padx=14, pady=6, bd=0, relief="flat", cursor="hand2", bg="#4B9CD3", fg="white", activebackground="#3A80B1", activeforeground="white")
-search_button.pack(pady=6)
-
-theme_button = tk.Button(root, text="✨ Switch Theme", command=switch_theme, font=button_font, padx=14, pady=6, bd=0, relief="flat", cursor="hand2", bg="#4B9CD3", fg="white", activebackground="#3A80B1", activeforeground="white")
-theme_button.pack(pady=6)
-
-apply_theme(light_theme)
-
-root.mainloop()
+if __name__ == '__main__':
+    EventureApp().run()
