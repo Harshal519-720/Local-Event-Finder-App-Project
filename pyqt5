@@ -3,10 +3,12 @@ import requests
 from datetime import datetime
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton,
-    QTextEdit, QVBoxLayout, QHBoxLayout, QFrame, QComboBox, QDialog, QDialogButtonBox, QMenu, QToolButton
+    QTextEdit, QVBoxLayout, QHBoxLayout, QFrame, QSpacerItem, QSizePolicy,
+    QComboBox, QDialog, QDialogButtonBox, QMenu, QToolButton
 )
 from PyQt5.QtGui import QFont, QPixmap, QCursor
 from PyQt5.QtCore import Qt
+
 
 class LanguageDialog(QDialog):
     def __init__(self, parent=None):
@@ -24,9 +26,11 @@ class LanguageDialog(QDialog):
         self.language_box.addItems(["English", "Español", "Français"])
         layout.addWidget(self.language_box)
 
-        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.buttons.button(QDialogButtonBox.Ok).setFont(QFont("Segoe UI", 10))
-        self.buttons.button(QDialogButtonBox.Cancel).setFont(QFont("Segoe UI", 10))
+        self.buttons.button(QDialogButtonBox.Cancel).setFont(
+            QFont("Segoe UI", 10))
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
         layout.addWidget(self.buttons)
@@ -36,25 +40,25 @@ class LanguageDialog(QDialog):
     def selected_language(self):
         return self.language_box.currentText()
 
+
 class EventureApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Eventure - Color Emoji Edition")
         self.setGeometry(100, 100, 720, 660)
+        self.setStyleSheet("background-color: #f2f2f2;")
         self.dark_mode = False
         self.language = "English"
         self.init_ui()
 
     def init_ui(self):
-        logo = QLabel()
-        pixmap = QPixmap("C:/Users/sunny/Desktop/download.webp").scaledToHeight(48, Qt.SmoothTransformation)
-        logo.setPixmap(pixmap)
-        logo.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.logo_label = QLabel()
+        self.logo_path_light = "C:/Users/sunny/Desktop/eventure_transparent.png"
+        self.logo_path_dark = "C:/Users/sunny/Desktop/eventure_white.png"
+        self.set_logo(self.logo_path_light)
 
-        title = QLabel("Eventure")
-        title.setFont(QFont("Segoe UI", 28, QFont.Bold))
-        title.setStyleSheet("color: #2c3e50; margin-bottom: 10px;")
-        title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.logo_label.setStyleSheet("background-color: transparent;")
+        self.logo_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
         settings_button = QToolButton()
         settings_button.setText("⚙️")
@@ -72,13 +76,13 @@ class EventureApp(QWidget):
             }
         """)
 
-        title_row = QHBoxLayout()
-        title_row.setAlignment(Qt.AlignLeft)
-        title_row.addWidget(logo)
-        title_row.addSpacing(10)
-        title_row.addWidget(title)
-        title_row.addStretch()
-        title_row.addWidget(settings_button)
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)
+        header_row.setSpacing(5)
+        header_row.setAlignment(Qt.AlignTop)
+        header_row.addWidget(self.logo_label)
+        header_row.addStretch()
+        header_row.addWidget(settings_button)
 
         city_label = QLabel("Enter City:")
         city_label.setFont(QFont("Segoe UI", 11))
@@ -99,7 +103,8 @@ class EventureApp(QWidget):
         self.output_box = QTextEdit()
         self.output_box.setReadOnly(True)
         self.output_box.setFont(QFont("Segoe UI Emoji", 10))
-        self.output_box.setStyleSheet("background-color: #ffffff; padding: 10px;")
+        self.output_box.setStyleSheet(
+            "background-color: #ffffff; padding: 10px;")
 
         input_row = QHBoxLayout()
         input_row.addStretch(1)
@@ -112,7 +117,7 @@ class EventureApp(QWidget):
 
         top_container = QVBoxLayout()
         top_container.setAlignment(Qt.AlignTop)
-        top_container.addLayout(title_row)
+        top_container.addLayout(header_row)
         top_container.addSpacing(10)
         top_container.addLayout(input_row)
 
@@ -128,6 +133,11 @@ class EventureApp(QWidget):
 
         self.setLayout(layout)
 
+    def set_logo(self, path):
+        pixmap = QPixmap(path).scaled(
+            400, 140, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.logo_label.setPixmap(pixmap)
+
     def create_settings_menu(self):
         menu = QMenu()
 
@@ -142,10 +152,14 @@ class EventureApp(QWidget):
     def toggle_theme(self):
         if self.dark_mode:
             self.setStyleSheet("")
-            self.output_box.setStyleSheet("background-color: #ffffff; color: black; padding: 10px;")
+            self.output_box.setStyleSheet(
+                "background-color: #ffffff; color: black; padding: 10px;")
+            self.set_logo(self.logo_path_light)
         else:
             self.setStyleSheet("background-color: #121212; color: #ffffff;")
-            self.output_box.setStyleSheet("background-color: #2a2a2a; color: #f0f0f0; padding: 10px;")
+            self.output_box.setStyleSheet(
+                "background-color: #2a2a2a; color: #f0f0f0; padding: 10px;")
+            self.set_logo(self.logo_path_dark)
         self.dark_mode = not self.dark_mode
 
     def open_language_dialog(self):
@@ -188,15 +202,18 @@ class EventureApp(QWidget):
                 name = e.get("name", "N/A")
                 raw_date = e["dates"]["start"].get("localDate", "Unknown")
                 raw_time = e["dates"]["start"].get("localTime", "Unknown")
-                venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
+                venue = e["_embedded"]["venues"][0].get(
+                    "name", "Unknown Venue")
 
                 try:
-                    date = datetime.strptime(raw_date, "%Y-%m-%d").strftime("%B %d, %Y")
+                    date = datetime.strptime(
+                        raw_date, "%Y-%m-%d").strftime("%B %d, %Y")
                 except:
                     date = raw_date
 
                 try:
-                    time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
+                    time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(
+                        raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
                     time = time_obj.strftime("%I:%M %p")
                 except:
                     time = raw_time
@@ -207,6 +224,7 @@ class EventureApp(QWidget):
 
         except Exception as e:
             return [f"❌ Error: {e}"]
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
