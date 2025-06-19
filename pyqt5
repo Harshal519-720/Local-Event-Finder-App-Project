@@ -14,6 +14,7 @@ class EventureApp(QWidget):
         super().__init__()
         self.setWindowTitle("Eventure - Color Emoji Edition")
         self.setGeometry(100, 100, 720, 660)
+        self.dark_mode = False
         self.init_ui()
 
     def init_ui(self):
@@ -51,11 +52,18 @@ class EventureApp(QWidget):
         search_button.setStyleSheet(
             "padding: 6px; background-color: #3f51b5; color: white; border: none; border-radius: 5px;")
 
+        self.theme_button = QPushButton("🌓 Toggle Theme")
+        self.theme_button.setCursor(Qt.PointingHandCursor)
+        self.theme_button.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        self.theme_button.setFixedWidth(130)
+        self.theme_button.clicked.connect(self.toggle_theme)
+        self.theme_button.setStyleSheet(
+            "padding: 6px; background-color: #444; color: white; border: none; border-radius: 5px;")
+
         self.output_box = QTextEdit()
         self.output_box.setReadOnly(True)
         self.output_box.setFont(QFont("Segoe UI Emoji", 10))
-        self.output_box.setStyleSheet(
-            "background-color: #ffffff; padding: 10px;")
+        self.output_box.setStyleSheet("background-color: #ffffff; padding: 10px;")
 
         input_row = QHBoxLayout()
         input_row.addStretch(1)
@@ -64,6 +72,8 @@ class EventureApp(QWidget):
         input_row.addWidget(self.city_input)
         input_row.addSpacing(10)
         input_row.addWidget(search_button)
+        input_row.addSpacing(10)
+        input_row.addWidget(self.theme_button)
         input_row.addStretch(1)
 
         top_container = QVBoxLayout()
@@ -83,6 +93,17 @@ class EventureApp(QWidget):
         layout.addWidget(self.output_box)
 
         self.setLayout(layout)
+
+    def toggle_theme(self):
+        if self.dark_mode:
+            self.setStyleSheet("")
+            self.output_box.setStyleSheet("background-color: #ffffff; color: black; padding: 10px;")
+            self.theme_button.setStyleSheet("padding: 6px; background-color: #444; color: white; border: none; border-radius: 5px;")
+        else:
+            self.setStyleSheet("background-color: #121212; color: #ffffff;")
+            self.output_box.setStyleSheet("background-color: #2a2a2a; color: #f0f0f0; padding: 10px;")
+            self.theme_button.setStyleSheet("padding: 6px; background-color: #888; color: black; border: none; border-radius: 5px;")
+        self.dark_mode = not self.dark_mode
 
     def on_search_click(self):
         city = self.city_input.text().strip()
@@ -145,4 +166,3 @@ if __name__ == "__main__":
     window = EventureApp()
     window.show()
     sys.exit(app.exec_())
-
