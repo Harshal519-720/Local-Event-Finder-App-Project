@@ -3,11 +3,38 @@ import requests
 from datetime import datetime
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton,
-    QTextEdit, QVBoxLayout, QHBoxLayout, QFrame, QSpacerItem, QSizePolicy
+    QTextEdit, QVBoxLayout, QHBoxLayout, QFrame, QComboBox, QDialog, QDialogButtonBox, QMenu, QToolButton
 )
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtGui import QFont, QPixmap, QCursor
 from PyQt5.QtCore import Qt
 
+class LanguageDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Select Language")
+        self.setFixedSize(300, 160)
+        layout = QVBoxLayout()
+
+        label = QLabel("Choose a language:")
+        label.setFont(QFont("Segoe UI", 11))
+        layout.addWidget(label)
+
+        self.language_box = QComboBox()
+        self.language_box.setFont(QFont("Segoe UI", 11))
+        self.language_box.addItems(["English", "Español", "Français"])
+        layout.addWidget(self.language_box)
+
+        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttons.button(QDialogButtonBox.Ok).setFont(QFont("Segoe UI", 10))
+        self.buttons.button(QDialogButtonBox.Cancel).setFont(QFont("Segoe UI", 10))
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+        layout.addWidget(self.buttons)
+
+        self.setLayout(layout)
+
+    def selected_language(self):
+        return self.language_box.currentText()
 
 class EventureApp(QWidget):
     def __init__(self):
@@ -15,13 +42,12 @@ class EventureApp(QWidget):
         self.setWindowTitle("Eventure - Color Emoji Edition")
         self.setGeometry(100, 100, 720, 660)
         self.dark_mode = False
+        self.language = "English"
         self.init_ui()
 
     def init_ui(self):
-        # Logo
         logo = QLabel()
-        pixmap = QPixmap(
-            "C:/Users/sunny/Desktop/download.webp").scaledToHeight(48, Qt.SmoothTransformation)
+        pixmap = QPixmap("C:/Users/sunny/Desktop/download.webp").scaledToHeight(48, Qt.SmoothTransformation)
         logo.setPixmap(pixmap)
         logo.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
@@ -30,11 +56,29 @@ class EventureApp(QWidget):
         title.setStyleSheet("color: #2c3e50; margin-bottom: 10px;")
         title.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
+        settings_button = QToolButton()
+        settings_button.setText("⚙️")
+        settings_button.setCursor(Qt.PointingHandCursor)
+        settings_button.setFixedSize(48, 48)
+        settings_button.setPopupMode(QToolButton.InstantPopup)
+        settings_button.setMenu(self.create_settings_menu())
+        settings_button.setStyleSheet("""
+            QToolButton {
+                font-size: 24px;
+                border: none;
+            }
+            QToolButton::menu-indicator {
+                image: none;
+            }
+        """)
+
         title_row = QHBoxLayout()
         title_row.setAlignment(Qt.AlignLeft)
         title_row.addWidget(logo)
         title_row.addSpacing(10)
         title_row.addWidget(title)
+        title_row.addStretch()
+        title_row.addWidget(settings_button)
 
         city_label = QLabel("Enter City:")
         city_label.setFont(QFont("Segoe UI", 11))
@@ -52,14 +96,6 @@ class EventureApp(QWidget):
         search_button.setStyleSheet(
             "padding: 6px; background-color: #3f51b5; color: white; border: none; border-radius: 5px;")
 
-        self.theme_button = QPushButton("🌓 Toggle Theme")
-        self.theme_button.setCursor(Qt.PointingHandCursor)
-        self.theme_button.setFont(QFont("Segoe UI", 10, QFont.Bold))
-        self.theme_button.setFixedWidth(130)
-        self.theme_button.clicked.connect(self.toggle_theme)
-        self.theme_button.setStyleSheet(
-            "padding: 6px; background-color: #444; color: white; border: none; border-radius: 5px;")
-
         self.output_box = QTextEdit()
         self.output_box.setReadOnly(True)
         self.output_box.setFont(QFont("Segoe UI Emoji", 10))
@@ -72,8 +108,6 @@ class EventureApp(QWidget):
         input_row.addWidget(self.city_input)
         input_row.addSpacing(10)
         input_row.addWidget(search_button)
-        input_row.addSpacing(10)
-        input_row.addWidget(self.theme_button)
         input_row.addStretch(1)
 
         top_container = QVBoxLayout()
@@ -94,16 +128,30 @@ class EventureApp(QWidget):
 
         self.setLayout(layout)
 
+    def create_settings_menu(self):
+        menu = QMenu()
+
+        toggle_theme_action = menu.addAction("🌓 Toggle Dark Mode")
+        toggle_theme_action.triggered.connect(self.toggle_theme)
+
+        language_action = menu.addAction("🌐 Change Language")
+        language_action.triggered.connect(self.open_language_dialog)
+
+        return menu
+
     def toggle_theme(self):
         if self.dark_mode:
             self.setStyleSheet("")
             self.output_box.setStyleSheet("background-color: #ffffff; color: black; padding: 10px;")
-            self.theme_button.setStyleSheet("padding: 6px; background-color: #444; color: white; border: none; border-radius: 5px;")
         else:
             self.setStyleSheet("background-color: #121212; color: #ffffff;")
             self.output_box.setStyleSheet("background-color: #2a2a2a; color: #f0f0f0; padding: 10px;")
-            self.theme_button.setStyleSheet("padding: 6px; background-color: #888; color: black; border: none; border-radius: 5px;")
         self.dark_mode = not self.dark_mode
+
+    def open_language_dialog(self):
+        dialog = LanguageDialog(self)
+        if dialog.exec_():
+            self.language = dialog.selected_language()
 
     def on_search_click(self):
         city = self.city_input.text().strip()
@@ -111,6 +159,14 @@ class EventureApp(QWidget):
         results = self.fetch_live_events(city)
         for line in results:
             self.output_box.append(line + "\n")
+
+    def translate(self, text):
+        translations = {
+            "English": text,
+            "Español": text.replace("Venue", "Lugar").replace("Date", "Fecha").replace("Time", "Hora"),
+            "Français": text.replace("Venue", "Lieu").replace("Date", "Date").replace("Time", "Heure")
+        }
+        return translations.get(self.language, text)
 
     def fetch_live_events(self, city):
         if not city.strip():
@@ -132,34 +188,25 @@ class EventureApp(QWidget):
                 name = e.get("name", "N/A")
                 raw_date = e["dates"]["start"].get("localDate", "Unknown")
                 raw_time = e["dates"]["start"].get("localTime", "Unknown")
-                venue = e["_embedded"]["venues"][0].get(
-                    "name", "Unknown Venue")
+                venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
 
                 try:
-                    date = datetime.strptime(
-                        raw_date, "%Y-%m-%d").strftime("%B %d, %Y")
+                    date = datetime.strptime(raw_date, "%Y-%m-%d").strftime("%B %d, %Y")
                 except:
                     date = raw_date
 
                 try:
-                    time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(
-                        raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
+                    time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
                     time = time_obj.strftime("%I:%M %p")
                 except:
                     time = raw_time
 
-                event_list.append(
-                    f"\U0001F389 <b>{name}</b><br>"
-                    f"\U0001F3DF️ Venue: {venue}<br>"
-                    f"\U0001F4C5 Date: {date}<br>"
-                    f"\u23F0 Time: {time}<br>"
-                    f"<hr>"
-                )
+                entry = f"\U0001F389 <b>{name}</b><br>\U0001F3DF️ Venue: {venue}<br>\U0001F4C5 Date: {date}<br>\u23F0 Time: {time}<br><hr>"
+                event_list.append(self.translate(entry))
             return event_list
 
         except Exception as e:
             return [f"❌ Error: {e}"]
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
