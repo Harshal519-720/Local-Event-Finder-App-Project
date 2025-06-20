@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QFont, QPixmap, QCursor
 from PyQt5.QtCore import Qt
+import os
 
 class LanguageDialog(QDialog):
     def __init__(self, parent=None):
@@ -56,15 +57,16 @@ class EventureApp(QWidget):
         self.dark_mode = False
         self.language = "English"
         self.last_results = []
-        self.logo_path_light = "C:/Users/harsh/Desktop/eventure_transparent.png"
-        self.logo_path_dark = "C:/Users/harsh/Desktop/eventure_white.png"
+        self.logo_path_light = os.path.join("assets", "eventure_transparent.png")
+        self.logo_path_dark = os.path.join("assets", "eventure_white.png")
         self.init_ui()
 
-        # Autofill with user's city
+        # Autofill with user's city and fetch events
         user_city = get_user_city()
         if user_city:
             self.city_input.setText(user_city)
             self.output_box.append(f"📍 Showing events near: <b>{user_city}</b>\n")
+            self.fetch_and_display_events(user_city)
 
     def init_ui(self):
         self.logo_label = QLabel()
@@ -147,9 +149,12 @@ class EventureApp(QWidget):
         self.setLayout(layout)
 
     def set_logo(self, path):
-        pixmap = QPixmap(path).scaled(
-            400, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-        self.logo_label.setPixmap(pixmap)
+        if os.path.exists(path):
+            pixmap = QPixmap(path).scaled(
+                400, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.logo_label.setPixmap(pixmap)
+        else:
+            self.logo_label.setText("[Logo not found]")
 
     def create_settings_menu(self):
         menu = QMenu()
@@ -188,6 +193,9 @@ class EventureApp(QWidget):
 
     def on_search_click(self):
         city = self.city_input.text().strip()
+        self.fetch_and_display_events(city)
+
+    def fetch_and_display_events(self, city):
         self.output_box.clear()
         results = self.fetch_live_events(city)
         self.last_results = results
