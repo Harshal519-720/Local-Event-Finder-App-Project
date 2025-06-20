@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QTextEdit, QVBoxLayout, QHBoxLayout, QFrame, QComboBox,
     QDialog, QDialogButtonBox, QMenu, QToolButton
 )
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtGui import QFont, QPixmap, QTextCursor
 from PyQt5.QtCore import Qt
 import os
 
@@ -112,8 +112,7 @@ class EventureApp(QWidget):
         search_button.setCursor(Qt.PointingHandCursor)
         search_button.setFont(QFont("Segoe UI", 10, QFont.Bold))
         search_button.setFixedWidth(100)
-        search_button.setStyleSheet(
-            "padding: 6px; background-color: #3f51b5; color: white; border: none; border-radius: 5px;")
+        search_button.setStyleSheet("padding: 6px; background-color: #3f51b5; color: white; border: none; border-radius: 5px;")
 
         self.output_box = QTextEdit()
         self.output_box.setReadOnly(True)
@@ -179,7 +178,7 @@ class EventureApp(QWidget):
 
     def refresh_output_with_translation(self):
         self.output_box.clear()
-        self.output_box.moveCursor(Qt.TextCursor.Start)
+        self.output_box.moveCursor(QTextCursor.Start)
         for line in self.last_results:
             self.output_box.append(self.translate(line) + "\n")
 
@@ -189,7 +188,7 @@ class EventureApp(QWidget):
 
     def fetch_and_display_events(self, city):
         self.output_box.clear()
-        self.output_box.moveCursor(Qt.TextCursor.Start)
+        self.output_box.moveCursor(QTextCursor.Start)
         results = self.fetch_all_events(city)
         self.last_results = results
         for line in results:
