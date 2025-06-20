@@ -179,6 +179,7 @@ class EventureApp(QWidget):
 
     def refresh_output_with_translation(self):
         self.output_box.clear()
+        self.output_box.moveCursor(Qt.TextCursor.Start)
         for line in self.last_results:
             self.output_box.append(self.translate(line) + "\n")
 
@@ -188,6 +189,7 @@ class EventureApp(QWidget):
 
     def fetch_and_display_events(self, city):
         self.output_box.clear()
+        self.output_box.moveCursor(Qt.TextCursor.Start)
         results = self.fetch_all_events(city)
         self.last_results = results
         for line in results:
@@ -206,6 +208,7 @@ class EventureApp(QWidget):
         base_url = f"https://app.ticketmaster.com/discovery/v2/events.json?apikey={API_KEY}&city={city}&size=200"
         all_events = []
         page = 0
+        now = datetime.now().date()
 
         while True:
             url = f"{base_url}&page={page}"
@@ -218,13 +221,20 @@ class EventureApp(QWidget):
 
                 events = data["_embedded"]["events"]
                 for e in events:
-                    name = e.get("name", "N/A")
                     raw_date = e["dates"]["start"].get("localDate", "Unknown")
+                    try:
+                        event_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
+                        if event_date < now:
+                            continue
+                    except:
+                        pass
+
+                    name = e.get("name", "N/A")
                     raw_time = e["dates"]["start"].get("localTime", "Unknown")
                     venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
 
                     try:
-                        date = datetime.strptime(raw_date, "%Y-%m-%d").strftime("%B %d, %Y")
+                        date = event_date.strftime("%B %d, %Y")
                     except:
                         date = raw_date
 
