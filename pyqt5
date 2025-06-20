@@ -9,7 +9,6 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QFont, QPixmap, QCursor
 from PyQt5.QtCore import Qt
 
-
 class LanguageDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -40,7 +39,6 @@ class LanguageDialog(QDialog):
     def selected_language(self):
         return self.language_box.currentText()
 
-
 class EventureApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -49,12 +47,13 @@ class EventureApp(QWidget):
         self.setStyleSheet("background-color: #f2f2f2;")
         self.dark_mode = False
         self.language = "English"
+        self.last_results = []
+        self.logo_path_light = "C:/Users/harsh/Desktop/eventure_transparent.png"
+        self.logo_path_dark = "C:/Users/harsh/Desktop/eventure_white.png"
         self.init_ui()
 
     def init_ui(self):
         self.logo_label = QLabel()
-        self.logo_path_light = "C:/Users/sunny/Desktop/eventure_transparent.png"
-        self.logo_path_dark = "C:/Users/sunny/Desktop/eventure_white.png"
         self.set_logo(self.logo_path_light)
 
         self.logo_label.setStyleSheet("background-color: transparent;")
@@ -135,7 +134,7 @@ class EventureApp(QWidget):
 
     def set_logo(self, path):
         pixmap = QPixmap(path).scaled(
-            400, 140, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            400, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.logo_label.setPixmap(pixmap)
 
     def create_settings_menu(self):
@@ -166,13 +165,20 @@ class EventureApp(QWidget):
         dialog = LanguageDialog(self)
         if dialog.exec_():
             self.language = dialog.selected_language()
+            self.refresh_output_with_translation()
+
+    def refresh_output_with_translation(self):
+        self.output_box.clear()
+        for line in self.last_results:
+            self.output_box.append(self.translate(line) + "\n")
 
     def on_search_click(self):
         city = self.city_input.text().strip()
         self.output_box.clear()
         results = self.fetch_live_events(city)
+        self.last_results = results
         for line in results:
-            self.output_box.append(line + "\n")
+            self.output_box.append(self.translate(line) + "\n")
 
     def translate(self, text):
         translations = {
@@ -219,12 +225,11 @@ class EventureApp(QWidget):
                     time = raw_time
 
                 entry = f"\U0001F389 <b>{name}</b><br>\U0001F3DF️ Venue: {venue}<br>\U0001F4C5 Date: {date}<br>\u23F0 Time: {time}<br><hr>"
-                event_list.append(self.translate(entry))
+                event_list.append(entry)
             return event_list
 
         except Exception as e:
             return [f"❌ Error: {e}"]
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
