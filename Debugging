@@ -1,78 +1,210 @@
-# main.py
-
-from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.label import Label
-from kivy.uix.textinput import TextInput
-from kivy.uix.button import Button
-from kivy.uix.scrollview import ScrollView
-from kivy.uix.gridlayout import GridLayout
-from kivy.core.window import Window
+import sys
 import requests
+import geocoder
 from datetime import datetime
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QLabel, QLineEdit, QPushButton,
+    QTextEdit, QVBoxLayout, QHBoxLayout, QFrame, QSpacerItem, QSizePolicy,
+    QComboBox, QDialog, QDialogButtonBox, QMenu, QToolButton
+)
+from PyQt5.QtGui import QFont, QPixmap, QCursor
+from PyQt5.QtCore import Qt
 
-# Set default window size for desktop testing
-Window.size = (360, 640)
+class LanguageDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Select Language")
+        self.setFixedSize(300, 160)
+        layout = QVBoxLayout()
 
-light_theme = {
-    "bg": [0.97, 0.98, 0.99, 1],
-    "fg": [0.18, 0.18, 0.18, 1],
-    "button_bg": [0.25, 0.32, 0.71, 1],
-    "button_fg": [1, 1, 1, 1]
-}
+        label = QLabel("Choose a language:")
+        label.setFont(QFont("Segoe UI", 11))
+        layout.addWidget(label)
 
-dark_theme = {
-    "bg": [0.12, 0.12, 0.12, 1],
-    "fg": [0.88, 0.88, 0.88, 1],
-    "button_bg": [0.36, 0.42, 0.75, 1],
-    "button_fg": [1, 1, 1, 1]
-}
+        self.language_box = QComboBox()
+        self.language_box.setFont(QFont("Segoe UI", 11))
+        self.language_box.addItems(["English", "Español", "Français"])
+        layout.addWidget(self.language_box)
 
-class EventureApp(App):
-    def build(self):
-        self.current_theme = light_theme
-        self.title = "Eventure"
+        self.buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttons.button(QDialogButtonBox.Ok).setFont(QFont("Segoe UI", 10))
+        self.buttons.button(QDialogButtonBox.Cancel).setFont(
+            QFont("Segoe UI", 10))
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+        layout.addWidget(self.buttons)
 
-        self.layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
-        self.layout.canvas.before.clear()
+        self.setLayout(layout)
 
-        self.city_input = TextInput(hint_text='Enter city name', size_hint_y=None, height=50, multiline=False)
-        self.search_button = Button(text='Search Events', size_hint_y=None, height=50, on_press=self.search_events)
-        self.theme_button = Button(text='Toggle Theme', size_hint_y=None, height=50, on_press=self.toggle_theme)
+    def selected_language(self):
+        return self.language_box.currentText()
 
-        self.result_container = GridLayout(cols=1, spacing=10, size_hint_y=None)
-        self.result_container.bind(minimum_height=self.result_container.setter('height'))
+def get_user_city():
+    try:
+        g = geocoder.ip('me')
+        return g.city or ""
+    except:
+        return ""
 
-        self.scroll = ScrollView()
-        self.scroll.add_widget(self.result_container)
+class EventureApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Eventure - Color Emoji Edition")
+        self.setGeometry(100, 100, 720, 660)
+        self.setStyleSheet("background-color: #f2f2f2;")
+        self.dark_mode = False
+        self.language = "English"
+        self.last_results = []
+        self.logo_path_light = "C:/Users/harsh/Desktop/eventure_transparent.png"
+        self.logo_path_dark = "C:/Users/harsh/Desktop/eventure_white.png"
+        self.init_ui()
 
-        self.layout.add_widget(Label(text='Eventure', font_size=28, size_hint_y=None, height=60))
-        self.layout.add_widget(self.city_input)
-        self.layout.add_widget(self.search_button)
-        self.layout.add_widget(self.theme_button)
-        self.layout.add_widget(self.scroll)
+        # Autofill with user's city
+        user_city = get_user_city()
+        if user_city:
+            self.city_input.setText(user_city)
+            self.output_box.append(f"📍 Showing events near: <b>{user_city}</b>\n")
 
-        self.apply_theme()
-        return self.layout
+    def init_ui(self):
+        self.logo_label = QLabel()
+        self.set_logo(self.logo_path_light)
 
-    def apply_theme(self):
-        Window.clearcolor = self.current_theme['bg']
-        widgets = [self.layout, self.search_button, self.theme_button, self.city_input]
-        for widget in widgets:
-            widget.background_color = self.current_theme['button_bg']
-            if hasattr(widget, 'color'):
-                widget.color = self.current_theme['fg']
+        self.logo_label.setStyleSheet("background-color: transparent;")
+        self.logo_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
 
-    def toggle_theme(self, instance):
-        self.current_theme = dark_theme if self.current_theme == light_theme else light_theme
-        self.apply_theme()
+        settings_button = QToolButton()
+        settings_button.setText("⚙️")
+        settings_button.setCursor(Qt.PointingHandCursor)
+        settings_button.setFixedSize(48, 48)
+        settings_button.setPopupMode(QToolButton.InstantPopup)
+        settings_button.setMenu(self.create_settings_menu())
+        settings_button.setStyleSheet("""
+            QToolButton {
+                font-size: 24px;
+                border: none;
+            }
+            QToolButton::menu-indicator {
+                image: none;
+            }
+        """)
 
-    def search_events(self, instance):
-        self.result_container.clear_widgets()
-        city = self.city_input.text.strip()
-        if not city:
-            self.result_container.add_widget(Label(text="\u26A0\ufe0f Please enter a valid city."))
-            return
+        header_row = QHBoxLayout()
+        header_row.setContentsMargins(0, 0, 0, 0)
+        header_row.setSpacing(5)
+        header_row.setAlignment(Qt.AlignTop)
+        header_row.addWidget(self.logo_label)
+        header_row.addStretch()
+        header_row.addWidget(settings_button)
+
+        city_label = QLabel("Enter City:")
+        city_label.setFont(QFont("Segoe UI", 11))
+
+        self.city_input = QLineEdit()
+        self.city_input.setPlaceholderText("e.g. New York")
+        self.city_input.setFixedWidth(200)
+        self.city_input.setFont(QFont("Segoe UI", 11))
+
+        search_button = QPushButton("🔍 Search")
+        search_button.clicked.connect(self.on_search_click)
+        search_button.setCursor(Qt.PointingHandCursor)
+        search_button.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        search_button.setFixedWidth(100)
+        search_button.setStyleSheet(
+            "padding: 6px; background-color: #3f51b5; color: white; border: none; border-radius: 5px;")
+
+        self.output_box = QTextEdit()
+        self.output_box.setReadOnly(True)
+        self.output_box.setFont(QFont("Segoe UI Emoji", 10))
+        self.output_box.setStyleSheet(
+            "background-color: #ffffff; padding: 10px;")
+
+        input_row = QHBoxLayout()
+        input_row.addStretch(1)
+        input_row.addWidget(city_label)
+        input_row.addSpacing(10)
+        input_row.addWidget(self.city_input)
+        input_row.addSpacing(10)
+        input_row.addWidget(search_button)
+        input_row.addStretch(1)
+
+        top_container = QVBoxLayout()
+        top_container.setAlignment(Qt.AlignTop)
+        top_container.addLayout(header_row)
+        top_container.addSpacing(10)
+        top_container.addLayout(input_row)
+
+        separator = QFrame()
+        separator.setFrameShape(QFrame.HLine)
+        separator.setFrameShadow(QFrame.Sunken)
+        separator.setStyleSheet("margin-top: 10px; margin-bottom: 10px;")
+
+        layout = QVBoxLayout()
+        layout.addLayout(top_container)
+        layout.addWidget(separator)
+        layout.addWidget(self.output_box)
+
+        self.setLayout(layout)
+
+    def set_logo(self, path):
+        pixmap = QPixmap(path).scaled(
+            400, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.logo_label.setPixmap(pixmap)
+
+    def create_settings_menu(self):
+        menu = QMenu()
+
+        toggle_theme_action = menu.addAction("🌓 Toggle Dark Mode")
+        toggle_theme_action.triggered.connect(self.toggle_theme)
+
+        language_action = menu.addAction("🌐 Change Language")
+        language_action.triggered.connect(self.open_language_dialog)
+
+        return menu
+
+    def toggle_theme(self):
+        if self.dark_mode:
+            self.setStyleSheet("")
+            self.output_box.setStyleSheet(
+                "background-color: #ffffff; color: black; padding: 10px;")
+            self.set_logo(self.logo_path_light)
+        else:
+            self.setStyleSheet("background-color: #121212; color: #ffffff;")
+            self.output_box.setStyleSheet(
+                "background-color: #2a2a2a; color: #f0f0f0; padding: 10px;")
+            self.set_logo(self.logo_path_dark)
+        self.dark_mode = not self.dark_mode
+
+    def open_language_dialog(self):
+        dialog = LanguageDialog(self)
+        if dialog.exec_():
+            self.language = dialog.selected_language()
+            self.refresh_output_with_translation()
+
+    def refresh_output_with_translation(self):
+        self.output_box.clear()
+        for line in self.last_results:
+            self.output_box.append(self.translate(line) + "\n")
+
+    def on_search_click(self):
+        city = self.city_input.text().strip()
+        self.output_box.clear()
+        results = self.fetch_live_events(city)
+        self.last_results = results
+        for line in results:
+            self.output_box.append(self.translate(line) + "\n")
+
+    def translate(self, text):
+        translations = {
+            "English": text,
+            "Español": text.replace("Venue", "Lugar").replace("Date", "Fecha").replace("Time", "Hora"),
+            "Français": text.replace("Venue", "Lieu").replace("Date", "Date").replace("Time", "Heure")
+        }
+        return translations.get(self.language, text)
+
+    def fetch_live_events(self, city):
+        if not city.strip():
+            return ["⚠️ Please enter a valid city name."]
 
         API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"
         url = f"https://app.ticketmaster.com/discovery/v2/events.json?apikey={API_KEY}&city={city}&size=5"
@@ -80,32 +212,41 @@ class EventureApp(App):
         try:
             response = requests.get(url)
             data = response.json()
-            if "_embedded" not in data or "events" not in data["_embedded"]:
-                self.result_container.add_widget(Label(text=f"\u26A0\ufe0f No events found for '{city}'."))
-                return
 
-            for e in data["_embedded"]["events"]:
+            if "_embedded" not in data or "events" not in data["_embedded"]:
+                return [f"⚠️ No events found for '{city}'."]
+
+            events = data["_embedded"]["events"]
+            event_list = []
+            for e in events:
                 name = e.get("name", "N/A")
                 raw_date = e["dates"]["start"].get("localDate", "Unknown")
                 raw_time = e["dates"]["start"].get("localTime", "Unknown")
-                venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
+                venue = e["_embedded"]["venues"][0].get(
+                    "name", "Unknown Venue")
 
                 try:
-                    date = datetime.strptime(raw_date, "%Y-%m-%d").strftime("%B %d, %Y")
+                    date = datetime.strptime(
+                        raw_date, "%Y-%m-%d").strftime("%B %d, %Y")
                 except:
                     date = raw_date
 
                 try:
-                    time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
+                    time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(
+                        raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
                     time = time_obj.strftime("%I:%M %p")
                 except:
                     time = raw_time
 
-                event_text = f"\u2728 {name}\n\U0001F3AD Venue: {venue}\n\U0001F4C5 Date: {date}\n\u23F0 Time: {time}\n{'-'*40}"
-                self.result_container.add_widget(Label(text=event_text, halign='left', valign='top', text_size=(Window.width - 40, None)))
+                entry = f"\U0001F389 <b>{name}</b><br>\U0001F3DF️ Venue: {venue}<br>\U0001F4C5 Date: {date}<br>\u23F0 Time: {time}<br><hr>"
+                event_list.append(entry)
+            return event_list
 
         except Exception as e:
-            self.result_container.add_widget(Label(text=f"\u274C Error: {e}"))
+            return [f"❌ Error: {e}"]
 
-if __name__ == '__main__':
-    EventureApp().run()
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = EventureApp()
+    window.show()
+    sys.exit(app.exec_())
