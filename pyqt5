@@ -4,10 +4,11 @@ from datetime import datetime
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QPushButton,
     QTextEdit, QVBoxLayout, QHBoxLayout, QFrame, QSpacerItem, QSizePolicy,
-    QComboBox, QDialog, QDialogButtonBox, QMenu, QToolButton
+    QComboBox, QDialog, QDialogButtonBox, QMenu, QToolButton, QAction
 )
 from PyQt5.QtGui import QFont, QPixmap, QCursor
 from PyQt5.QtCore import Qt
+
 
 class LanguageDialog(QDialog):
     def __init__(self, parent=None):
@@ -39,6 +40,7 @@ class LanguageDialog(QDialog):
     def selected_language(self):
         return self.language_box.currentText()
 
+
 class EventureApp(QWidget):
     def __init__(self):
         super().__init__()
@@ -47,9 +49,9 @@ class EventureApp(QWidget):
         self.setStyleSheet("background-color: #f2f2f2;")
         self.dark_mode = False
         self.language = "English"
-        self.last_results = []
-        self.logo_path_light = "C:/Users/harsh/Desktop/eventure_transparent.png"
-        self.logo_path_dark = "C:/Users/harsh/Desktop/eventure_white.png"
+        self.raw_results = []
+        self.logo_path_light = "C:/Users/sunny/Desktop/eventure_transparent.png"
+        self.logo_path_dark = "C:/Users/sunny/Desktop/eventure_white.png"
         self.init_ui()
 
     def init_ui(self):
@@ -106,18 +108,19 @@ class EventureApp(QWidget):
             "background-color: #ffffff; padding: 10px;")
 
         input_row = QHBoxLayout()
+        input_row.setContentsMargins(0, 0, 0, 0)
+        input_row.setSpacing(10)
         input_row.addStretch(1)
         input_row.addWidget(city_label)
-        input_row.addSpacing(10)
         input_row.addWidget(self.city_input)
-        input_row.addSpacing(10)
         input_row.addWidget(search_button)
         input_row.addStretch(1)
 
         top_container = QVBoxLayout()
+        top_container.setContentsMargins(0, 0, 0, 0)
+        top_container.setSpacing(5)
         top_container.setAlignment(Qt.AlignTop)
         top_container.addLayout(header_row)
-        top_container.addSpacing(10)
         top_container.addLayout(input_row)
 
         separator = QFrame()
@@ -134,17 +137,19 @@ class EventureApp(QWidget):
 
     def set_logo(self, path):
         pixmap = QPixmap(path).scaled(
-            400, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            400, 140, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.logo_label.setPixmap(pixmap)
 
     def create_settings_menu(self):
         menu = QMenu()
 
-        toggle_theme_action = menu.addAction("🌓 Toggle Dark Mode")
-        toggle_theme_action.triggered.connect(self.toggle_theme)
+        self.toggle_theme_action = QAction("🌃 Toggle Dark Mode")
+        self.toggle_theme_action.triggered.connect(self.toggle_theme)
+        menu.addAction(self.toggle_theme_action)
 
-        language_action = menu.addAction("🌐 Change Language")
-        language_action.triggered.connect(self.open_language_dialog)
+        self.language_action = QAction("🌐 Change Language")
+        self.language_action.triggered.connect(self.open_language_dialog)
+        menu.addAction(self.language_action)
 
         return menu
 
@@ -154,31 +159,31 @@ class EventureApp(QWidget):
             self.output_box.setStyleSheet(
                 "background-color: #ffffff; color: black; padding: 10px;")
             self.set_logo(self.logo_path_light)
+            self.toggle_theme_action.setText("🌃 Toggle Dark Mode")
         else:
             self.setStyleSheet("background-color: #121212; color: #ffffff;")
             self.output_box.setStyleSheet(
                 "background-color: #2a2a2a; color: #f0f0f0; padding: 10px;")
             self.set_logo(self.logo_path_dark)
+            self.toggle_theme_action.setText("🌞 Toggle Light Mode")
         self.dark_mode = not self.dark_mode
 
     def open_language_dialog(self):
         dialog = LanguageDialog(self)
         if dialog.exec_():
             self.language = dialog.selected_language()
-            self.refresh_output_with_translation()
+            self.refresh_output()
 
-    def refresh_output_with_translation(self):
+    def refresh_output(self):
         self.output_box.clear()
-        for line in self.last_results:
-            self.output_box.append(self.translate(line) + "\n")
+        for entry in self.raw_results:
+            self.output_box.append(self.translate(entry) + "\n")
 
     def on_search_click(self):
         city = self.city_input.text().strip()
         self.output_box.clear()
-        results = self.fetch_live_events(city)
-        self.last_results = results
-        for line in results:
-            self.output_box.append(self.translate(line) + "\n")
+        self.raw_results = self.fetch_live_events(city)
+        self.refresh_output()
 
     def translate(self, text):
         translations = {
@@ -224,12 +229,13 @@ class EventureApp(QWidget):
                 except:
                     time = raw_time
 
-                entry = f"\U0001F389 <b>{name}</b><br>\U0001F3DF️ Venue: {venue}<br>\U0001F4C5 Date: {date}<br>\u23F0 Time: {time}<br><hr>"
+                entry = f"\U0001f389 <b>{name}</b><br>\U0001f3df️ Venue: {venue}<br>\U0001f4c5 Date: {date}<br>⏰ Time: {time}<br><hr>"
                 event_list.append(entry)
             return event_list
 
         except Exception as e:
             return [f"❌ Error: {e}"]
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
