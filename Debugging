@@ -178,9 +178,10 @@ class EventureApp(QWidget):
 
     def refresh_output_with_translation(self):
         self.output_box.clear()
-        self.output_box.moveCursor(QTextCursor.Start)
+        self.last_results.sort(key=lambda x: x.get("event_date", datetime.max))
         for line in self.last_results:
-            self.output_box.append(self.translate(line) + "\n")
+            self.output_box.append(self.translate(line["text"]) + "\n")
+        self.output_box.moveCursor(QTextCursor.Start)
 
     def on_search_click(self):
         city = self.city_input.text().strip()
@@ -188,11 +189,12 @@ class EventureApp(QWidget):
 
     def fetch_and_display_events(self, city):
         self.output_box.clear()
-        self.output_box.moveCursor(QTextCursor.Start)
         results = self.fetch_all_events(city)
+        results.sort(key=lambda x: x.get("event_date", datetime.max))
         self.last_results = results
         for line in results:
-            self.output_box.append(self.translate(line) + "\n")
+            self.output_box.append(self.translate(line["text"]) + "\n")
+        self.output_box.moveCursor(QTextCursor.Start)
 
     def translate(self, text):
         translations = {
@@ -226,7 +228,7 @@ class EventureApp(QWidget):
                         if event_date < now:
                             continue
                     except:
-                        pass
+                        continue
 
                     name = e.get("name", "N/A")
                     raw_time = e["dates"]["start"].get("localTime", "Unknown")
@@ -244,7 +246,7 @@ class EventureApp(QWidget):
                         time = raw_time
 
                     entry = f"🎉 <b>{name}</b><br>🏟️ Venue: {venue}<br>📅 Date: {date}<br>⏰ Time: {time}<br><hr>"
-                    all_events.append(entry)
+                    all_events.append({"text": entry, "event_date": event_date})
 
                 if page >= data.get("page", {}).get("totalPages", 0) - 1:
                     break
@@ -252,11 +254,11 @@ class EventureApp(QWidget):
                 page += 1
 
             except Exception as e:
-                all_events.append(f"❌ Error: {e}")
+                all_events.append({"text": f"❌ Error: {e}", "event_date": datetime.max})
                 break
 
         if not all_events:
-            return [f"⚠️ No events found for '{city}'."]
+            return [{"text": f"⚠️ No events found for '{city}'.", "event_date": datetime.max}]
         return all_events
 
 
