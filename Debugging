@@ -66,7 +66,7 @@ class EventureApp(QWidget):
         if user_city:
             self.city_input.setText(user_city)
             self.output_box.append(f"📍 Showing events near: <b>{user_city}</b>\n")
-            self.fetch_and_display_events(user_city)
+            self.fetch_and_display_events(user_city, self.category_box.currentText())
 
     def init_ui(self):
         self.logo_label = QLabel()
@@ -159,7 +159,7 @@ class EventureApp(QWidget):
 
     def create_settings_menu(self):
         menu = QMenu()
-        toggle_theme_action = menu.addAction("🌑 Toggle Dark Mode")
+        toggle_theme_action = menu.addAction("🌓 Toggle Dark Mode")
         toggle_theme_action.triggered.connect(self.toggle_theme)
         language_action = menu.addAction("🌐 Change Language")
         language_action.triggered.connect(self.open_language_dialog)
