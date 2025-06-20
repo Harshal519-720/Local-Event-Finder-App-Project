@@ -61,7 +61,6 @@ class EventureApp(QWidget):
         self.logo_path_dark = os.path.join("assets", "eventure_white.png")
         self.init_ui()
 
-        # Autofill with user's city and fetch events
         user_city = get_user_city()
         if user_city:
             self.city_input.setText(user_city)
@@ -151,10 +150,17 @@ class EventureApp(QWidget):
     def set_logo(self, path):
         if os.path.exists(path):
             pixmap = QPixmap(path).scaled(
-                400, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                300, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.logo_label.setPixmap(pixmap)
         else:
-            self.logo_label.setText("[Logo not found]")
+            fallback = QLabel("Eventure")
+            fallback.setFont(QFont("Segoe UI", 26, QFont.Bold))
+            fallback.setStyleSheet("color: #3f51b5;")
+            self.logo_label.setPixmap(QPixmap())
+            self.logo_label.setText("")
+            layout = QHBoxLayout()
+            layout.addWidget(fallback)
+            self.logo_label.setLayout(layout)
 
     def create_settings_menu(self):
         menu = QMenu()
