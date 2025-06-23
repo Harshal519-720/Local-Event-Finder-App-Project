@@ -57,9 +57,17 @@ def fetch_all_events(city, category):
                 except:
                     time = raw_time
 
-                entry = f"🎉 {name}\n🏟️ Venue: {venue}\n📅 Date: {date}\n⏰ Time: {time}\n🔗 Link: {url}\n{'-'*40}"
-                all_events.append(
-                    {"text": entry, "event_date": event_date, "image_url": image_url})
+                entry = {
+                    "summary": f"🎉 {name}",
+                    "venue": venue,
+                    "date": date,
+                    "time": time,
+                    "url": url,
+                    "image_url": image_url,
+                    "event_date": event_date
+                }
+
+                all_events.append(entry)
 
             if page >= data.get("page", {}).get("totalPages", 0) - 1:
                 break
@@ -68,11 +76,11 @@ def fetch_all_events(city, category):
 
         except Exception as e:
             all_events.append(
-                {"text": f"❌ Error: {e}", "event_date": datetime.max})
+                {"summary": f"❌ Error: {e}", "event_date": datetime.max})
             break
 
     if not all_events:
-        return [{"text": f"⚠️ No events found for '{city}'.", "event_date": datetime.max}]
+        return [{"summary": f"⚠️ No events found for '{city}'.", "event_date": datetime.max}]
     return sorted(all_events, key=lambda x: x["event_date"])
 
 
@@ -99,7 +107,7 @@ def main(page: ft.Page):
     last_results = []
     current_page = 1
     events_per_page = 20
-    expanded_view = False
+    expanded_once = False
 
     def translate(text, lang):
         translations = {
@@ -114,29 +122,34 @@ def main(page: ft.Page):
         start = (current_page - 1) * events_per_page
         end = start + events_per_page
         page_events = last_results[start:end]
-        translated = [translate(r["text"], language_dropdown.value) for r in page_events]
 
-        for i, t in enumerate(translated):
-            image = ft.Image(src=page_events[i]["image_url"], width=180, height=100) if page_events[i].get("image_url") else None
-            summary = t.split("\n")[0]
-            details = "\n".join(t.split("\n")[1:])
-            details_text = ft.Text(details, visible=False, selectable=True, expand=True)
+        for event in page_events:
+            summary_text = ft.Text(event["summary"], size=16, weight="bold", expand=True)
+            details = f"🏟️ Venue: {event['venue']}\n📅 Date: {event['date']}\n⏰ Time: {event['time']}"
+            detail_text = ft.Text(details, expand=True)
 
-            def toggle_info(e, text_control=details_text):
-                nonlocal expanded_view
-                text_control.visible = not text_control.visible
-                if not expanded_view:
-                    page.window_height += 300
-                    expanded_view = True
+            # Simulated ticket info
+            extra_info = ft.Text(f"🎟️ Tickets available at: {event['url']}", visible=False, size=12, color=ft.colors.BLUE)
+
+            def show_more_info(e, info=extra_info):
+                nonlocal expanded_once
+                info.visible = not info.visible
+                if not expanded_once:
+                    page.window_height += 200
+                    expanded_once = True
                 page.update()
 
-            info_button = ft.TextButton("More Info ⬇️", on_click=toggle_info)
-            event_row = ft.Column([
-                ft.Row([image if image else ft.Container(), ft.Text(summary, expand=True)], spacing=20),
+            info_button = ft.TextButton("More Info ⬇️", on_click=show_more_info)
+
+            image = ft.Image(src=event["image_url"], width=180, height=100) if event.get("image_url") else None
+
+            event_column = ft.Column([
+                ft.Row([image if image else ft.Container(), ft.Column([summary_text, detail_text], expand=True)], spacing=20),
                 info_button,
-                details_text
-            ], spacing=5)
-            output_box.controls.append(ft.Container(content=event_row, padding=10))
+                extra_info
+            ], spacing=10)
+
+            output_box.controls.append(ft.Container(content=event_column, padding=10))
 
         render_pagination()
         page.update()
