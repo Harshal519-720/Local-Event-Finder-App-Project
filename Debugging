@@ -1,15 +1,8 @@
-import sys
+import flet as ft
 import requests
 import geocoder
 from datetime import datetime
-import flet as ft
 
-CATEGORY_OPTIONS = ["All", "Music", "Sports", "Arts & Theater", "Film", "Miscellaneous"]
-LANGUAGE_TRANSLATIONS = {
-    "English": lambda text: text,
-    "Español": lambda text: text.replace("Venue", "Lugar").replace("Date", "Fecha").replace("Time", "Hora"),
-    "Français": lambda text: text.replace("Venue", "Lieu").replace("Date", "Date").replace("Time", "Heure")
-}
 
 def get_user_city():
     try:
@@ -18,7 +11,8 @@ def get_user_city():
     except:
         return ""
 
-def fetch_all_events(city, category, start_date=None, end_date=None):
+
+def fetch_all_events(city, category):
     API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"
     classification = "" if category == "All" else f"&classificationName={category}"
     base_url = f"https://app.ticketmaster.com/discovery/v2/events.json?apikey={API_KEY}&city={city}&size=200{classification}"
@@ -42,10 +36,6 @@ def fetch_all_events(city, category, start_date=None, end_date=None):
                     event_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
                     if event_date < now:
                         continue
-                    if start_date and event_date < start_date:
-                        continue
-                    if end_date and event_date > end_date:
-                        continue
                 except:
                     continue
 
@@ -64,11 +54,12 @@ def fetch_all_events(city, category, start_date=None, end_date=None):
                 except:
                     time = raw_time
 
-                entry = f"🎉 <b>{name}</b><br>🏟️ Venue: {venue}<br>📅 Date: {date}<br>⏰ Time: {time}<br><hr>"
+                entry = f"🎉 {name}\n🏟️ Venue: {venue}\n📅 Date: {date}\n⏰ Time: {time}\n{'-'*40}"
                 all_events.append({"text": entry, "event_date": event_date})
 
             if page >= data.get("page", {}).get("totalPages", 0) - 1:
                 break
+
             page += 1
 
         except Exception as e:
@@ -79,52 +70,64 @@ def fetch_all_events(city, category, start_date=None, end_date=None):
         return [{"text": f"⚠️ No events found for '{city}'.", "event_date": datetime.max}]
     return sorted(all_events, key=lambda x: x["event_date"])
 
+
 def main(page: ft.Page):
-    page.title = "Eventure Web"
-    page.scroll = ft.ScrollMode.ALWAYS
-    language = "English"
-    results = []
+    page.title = "Eventure - Flet Edition"
+    page.scroll = ft.ScrollMode.AUTO
+    page.theme_mode = ft.ThemeMode.LIGHT
+    page.window_width = 720
+    page.window_height = 700
+
+    language_options = ["English", "Español", "Français"]
+    categories = ["All", "Music", "Sports", "Arts & Theater", "Film", "Miscellaneous"]
 
     city_input = ft.TextField(label="Enter City", width=200)
-    category_dropdown = ft.Dropdown(options=[ft.dropdown.Option(c) for c in CATEGORY_OPTIONS], value="All")
-    start_date_picker = ft.DatePicker()
-    end_date_picker = ft.DatePicker()
-    result_column = ft.Column(scroll=ft.ScrollMode.ALWAYS)
+    category_dropdown = ft.Dropdown(options=[ft.dropdown.Option(cat) for cat in categories], width=200, value="All")
+    language_dropdown = ft.Dropdown(options=[ft.dropdown.Option(lang) for lang in language_options], width=150, value="English")
+    output_box = ft.TextField(multiline=True, read_only=True, value="", expand=True, height=500, text_size=14)
 
-    def translate(text):
-        return LANGUAGE_TRANSLATIONS[language](text)
+    last_results = []
 
-    def on_search_click(e=None):
-        result_column.controls.clear()
-        city = city_input.value.strip()
-        category = category_dropdown.value
-        start_date = start_date_picker.value
-        end_date = end_date_picker.value
-        event_data = fetch_all_events(city, category, start_date, end_date)
-        for item in event_data:
-            result_column.controls.append(ft.Text(translate(item["text"]), selectable=True))
+    def translate(text, lang):
+        translations = {
+            "English": text,
+            "Español": text.replace("Venue", "Lugar").replace("Date", "Fecha").replace("Time", "Hora"),
+            "Français": text.replace("Venue", "Lieu").replace("Date", "Date").replace("Time", "Heure")
+        }
+        return translations.get(lang, text)
+
+    def refresh_output():
+        translated = [translate(r["text"], language_dropdown.value) for r in last_results]
+        output_box.value = "\n\n".join(translated)
         page.update()
 
-    def change_language(e):
-        nonlocal language
-        language = e.control.value
-        on_search_click()
+    def on_search_click(e):
+        nonlocal last_results
+        city = city_input.value.strip()
+        category = category_dropdown.value
+        output_box.value = f"📍 Showing events near: {city}\n\n"
+        page.update()
+        last_results = fetch_all_events(city, category)
+        refresh_output()
 
-    page.overlay.extend([start_date_picker, end_date_picker])
-
-    search_row = ft.Row([
+    city_row = ft.Row([
         city_input,
         category_dropdown,
-        ft.ElevatedButton("Start Date", on_click=lambda _: start_date_picker.pick_date()),
-        ft.ElevatedButton("End Date", on_click=lambda _: end_date_picker.pick_date()),
         ft.ElevatedButton("🔍 Search", on_click=on_search_click),
-        ft.Dropdown(
-            value="English",
-            options=[ft.dropdown.Option("English"), ft.dropdown.Option("Español"), ft.dropdown.Option("Français")],
-            on_change=change_language
-        )
-    ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+        language_dropdown
+    ], alignment=ft.MainAxisAlignment.CENTER, spacing=10)
 
-    page.add(search_row, ft.Divider(), result_column)
+    page.add(ft.Column([
+        ft.Text("Eventure", size=32, weight="bold"),
+        city_row,
+        output_box
+    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER))
+
+    user_city = get_user_city()
+    if user_city:
+        city_input.value = user_city
+        output_box.value = f"📍 Showing events near: {user_city}\n\n"
+        last_results.extend(fetch_all_events(user_city, category_dropdown.value))
+        refresh_output()
 
 ft.app(target=main, view=ft.WEB_BROWSER)
