@@ -100,7 +100,7 @@ def main(page: ft.Page):
     output_box = ft.Column(scroll=ft.ScrollMode.ALWAYS, expand=True)
     dark_mode_switch = ft.Switch(label="Dark Mode", on_change=lambda e: toggle_theme())
     loading_indicator = ft.ProgressRing(visible=False)
-    error_text = ft.Text("", color=ft.Colors.RED, visible=False)
+    error_text = ft.Text("", color=ft.colors.RED, visible=False)
 
     pagination_row = ft.Row([], alignment=ft.MainAxisAlignment.CENTER)
 
@@ -121,6 +121,17 @@ def main(page: ft.Page):
         start = (current_page - 1) * events_per_page
         end = start + events_per_page
         page_events = last_results[start:end]
+
+        # Handle "No events found" or "Error" messages
+        if len(page_events) == 1 and (
+            page_events[0].get("summary", "").startswith("⚠️ No events found") or
+            page_events[0].get("summary", "").startswith("❌ Error")
+        ):
+            output_box.controls.append(
+                ft.Text(page_events[0].get("summary", ""), size=18, weight="bold", color=ft.colors.RED)
+            )
+            page.update()
+            return
 
         for event in page_events:
             summary_text = ft.Text(event.get("summary", ""), size=16, weight="bold", expand=True)
