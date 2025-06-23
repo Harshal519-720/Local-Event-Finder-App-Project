@@ -107,7 +107,6 @@ def main(page: ft.Page):
     last_results = []
     current_page = 1
     events_per_page = 20
-    expanded_once = False
 
     def translate(text, lang):
         translations = {
@@ -136,26 +135,14 @@ def main(page: ft.Page):
                         style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE, color=ft.colors.BLUE)
                     )
                 ],
-                visible=False,
                 selectable=True
             )
-
-            def show_more_info(e, info=ticket_link):
-                nonlocal expanded_once
-                info.visible = not info.visible
-                if not expanded_once:
-                    page.window_height += 200
-                    expanded_once = True
-                page.update()
-
-            info_button = ft.TextButton("More Info ⬇️", on_click=show_more_info)
 
             image = ft.Image(src=event.get("image_url", ""), width=180, height=100) if event.get("image_url") else None
 
             event_column = ft.Column([
                 ft.Row([image if image else ft.Container(), ft.Column([summary_text, detail_text], expand=True)], spacing=20),
-                ft.Row([info_button]),
-                ticket_link
+                ft.Row([ticket_link])
             ], spacing=10)
 
             output_box.controls.append(ft.Container(content=event_column, padding=10))
