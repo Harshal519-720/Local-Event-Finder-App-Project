@@ -59,9 +59,17 @@ def fetch_all_events(city, category):
                 except:
                     time = raw_time
 
-                entry = f"🎉 {name}\n🏟️ Venue: {venue}\n📅 Date: {date}\n⏰ Time: {time}\n🔗 Link: {url}\n{'-'*40}"
-                all_events.append(
-                    {"text": entry, "event_date": event_date, "image_url": image_url})
+                entry = {
+                    "summary": f"🎉 {name}",
+                    "venue": venue,
+                    "date": date,
+                    "time": time,
+                    "url": url,
+                    "image_url": image_url,
+                    "event_date": event_date
+                }
+
+                all_events.append(entry)
 
             if page >= data.get("page", {}).get("totalPages", 0) - 1:
                 break
@@ -70,11 +78,11 @@ def fetch_all_events(city, category):
 
         except Exception as e:
             all_events.append(
-                {"text": f"❌ Error: {e}", "event_date": datetime.max})
+                {"summary": f"❌ Error: {e}", "event_date": datetime.max})
             break
 
     if not all_events:
-        return [{"text": f"⚠️ No events found for '{city}'.", "event_date": datetime.max}]
+        return [{"summary": f"⚠️ No events found for '{city}'.", "event_date": datetime.max}]
     return sorted(all_events, key=lambda x: x["event_date"])
 
 
@@ -119,22 +127,63 @@ def main(page: ft.Page):
         start = (current_page - 1) * events_per_page
         end = start + events_per_page
         page_events = last_results[start:end]
-        translated = [translate(r["text"], language_dropdown.value)
-                      for r in page_events]
-        for i, t in enumerate(translated):
-            image = ft.Image(src=page_events[i]["image_url"], width=180, height=100) if page_events[i].get(
-                "image_url") else None
-            row = ft.Row([
-                image if image else ft.Container(),
-                ft.Text(t, selectable=True, expand=True)
-            ], alignment=ft.MainAxisAlignment.START, spacing=20)
-            output_box.controls.append(ft.Container(content=row, padding=10))
+
+        # Handle "No events found" or "Error" messages
+        if len(page_events) == 1 and (
+            page_events[0].get("summary", "").startswith("⚠️ No events found") or
+            page_events[0].get("summary", "").startswith("❌ Error")
+        ):
+            output_box.controls.append(
+                ft.Text(page_events[0].get("summary", ""),
+                        size=18, weight="bold", color=ft.Colors.RED)
+            )
+            page.update()
+            return
+
+        for event in page_events:
+            summary_text = ft.Text(
+                event.get("summary", ""), size=16, weight="bold", expand=True)
+            details = f"🏟️ Venue: {event.get('venue', 'Unknown')}\n📅 Date: {event.get('date', 'Unknown')}\n⏰ Time: {event.get('time', 'Unknown')}"
+            detail_text = ft.Text(details, expand=True, selectable=True)
+
+            ticket_link = ft.Text(
+                spans=[
+                    ft.TextSpan(
+                        "🎟️ Tickets available here",
+                        url=event.get("url", ""),
+                        style=ft.TextStyle(
+                            decoration=ft.TextDecoration.UNDERLINE, color=ft.Colors.BLUE)
+                    )
+                ],
+                selectable=True
+            )
+
+            image = ft.Image(src=event.get("image_url", ""), width=180,
+                             height=100) if event.get("image_url") else None
+
+            text_column = ft.Column([
+                summary_text,
+                detail_text,
+                ticket_link
+            ], expand=True)
+
+            event_column = ft.Column([
+                ft.Row([
+                    image if image else ft.Container(),
+                    text_column
+                ], spacing=20)
+            ], spacing=10)
+
+            output_box.controls.append(ft.Container(
+                content=event_column, padding=10))
+
         render_pagination()
         page.update()
 
     def render_pagination():
         pagination_row.controls.clear()
-        total_pages = (len(last_results) + events_per_page - 1) // events_per_page
+        total_pages = (len(last_results) +
+                       events_per_page - 1) // events_per_page
         for i in range(1, total_pages + 1):
             pagination_row.controls.append(
                 ft.TextButton(str(i), on_click=lambda e, p=i: change_page(p)))
