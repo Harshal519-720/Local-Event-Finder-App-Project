@@ -140,9 +140,17 @@ def main(page: ft.Page):
 
             image = ft.Image(src=event.get("image_url", ""), width=180, height=100) if event.get("image_url") else None
 
+            text_column = ft.Column([
+                summary_text,
+                detail_text,
+                ticket_link
+            ], expand=True)
+
             event_column = ft.Column([
-                ft.Row([image if image else ft.Container(), ft.Column([summary_text, detail_text], expand=True)], spacing=20),
-                ft.Row([ticket_link])
+                ft.Row([
+                    image if image else ft.Container(),
+                    text_column
+                ], spacing=20)
             ], spacing=10)
 
             output_box.controls.append(ft.Container(content=event_column, padding=10))
