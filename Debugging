@@ -2,44 +2,14 @@ import sys
 import requests
 import geocoder
 from datetime import datetime
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton,
-    QTextEdit, QVBoxLayout, QHBoxLayout, QFrame, QComboBox,
-    QDialog, QDialogButtonBox, QMenu, QToolButton
-)
-from PyQt5.QtGui import QFont, QPixmap, QTextCursor
-from PyQt5.QtCore import Qt
-import os
+import flet as ft
 
-
-class LanguageDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Select Language")
-        self.setFixedSize(300, 160)
-        layout = QVBoxLayout()
-
-        label = QLabel("Choose a language:")
-        label.setFont(QFont("Segoe UI", 11))
-        layout.addWidget(label)
-
-        self.language_box = QComboBox()
-        self.language_box.setFont(QFont("Segoe UI", 11))
-        self.language_box.addItems(["English", "Español", "Français"])
-        layout.addWidget(self.language_box)
-
-        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        self.buttons.button(QDialogButtonBox.Ok).setFont(QFont("Segoe UI", 10))
-        self.buttons.button(QDialogButtonBox.Cancel).setFont(QFont("Segoe UI", 10))
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
-        layout.addWidget(self.buttons)
-
-        self.setLayout(layout)
-
-    def selected_language(self):
-        return self.language_box.currentText()
-
+CATEGORY_OPTIONS = ["All", "Music", "Sports", "Arts & Theater", "Film", "Miscellaneous"]
+LANGUAGE_TRANSLATIONS = {
+    "English": lambda text: text,
+    "Español": lambda text: text.replace("Venue", "Lugar").replace("Date", "Fecha").replace("Time", "Hora"),
+    "Français": lambda text: text.replace("Venue", "Lieu").replace("Date", "Date").replace("Time", "Heure")
+}
 
 def get_user_city():
     try:
@@ -48,230 +18,113 @@ def get_user_city():
     except:
         return ""
 
+def fetch_all_events(city, category, start_date=None, end_date=None):
+    API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"
+    classification = "" if category == "All" else f"&classificationName={category}"
+    base_url = f"https://app.ticketmaster.com/discovery/v2/events.json?apikey={API_KEY}&city={city}&size=200{classification}"
+    all_events = []
+    page = 0
+    now = datetime.now().date()
 
-class EventureApp(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Eventure - Color Emoji Edition")
-        self.setGeometry(100, 100, 720, 660)
-        self.setStyleSheet("background-color: #f2f2f2;")
-        self.dark_mode = False
-        self.language = "English"
-        self.last_results = []
-        self.logo_path_light = os.path.join("assets", "eventure_transparent.png")
-        self.logo_path_dark = os.path.join("assets", "eventure_white.png")
-        self.init_ui()
+    while True:
+        url = f"{base_url}&page={page}"
+        try:
+            response = requests.get(url)
+            data = response.json()
 
-        user_city = get_user_city()
-        if user_city:
-            self.city_input.setText(user_city)
-            self.output_box.append(f"📍 Showing events near: <b>{user_city}</b>\n")
-            self.fetch_and_display_events(user_city, self.category_box.currentText())
-
-    def init_ui(self):
-        self.logo_label = QLabel()
-        self.set_logo(self.logo_path_light)
-
-        self.logo_label.setStyleSheet("background-color: transparent;")
-        self.logo_label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-
-        settings_button = QToolButton()
-        settings_button.setText("⚙️")
-        settings_button.setCursor(Qt.PointingHandCursor)
-        settings_button.setFixedSize(48, 48)
-        settings_button.setPopupMode(QToolButton.InstantPopup)
-        settings_button.setMenu(self.create_settings_menu())
-        settings_button.setStyleSheet("""
-            QToolButton {
-                font-size: 24px;
-                border: none;
-            }
-            QToolButton::menu-indicator {
-                image: none;
-            }
-        """)
-
-        header_row = QHBoxLayout()
-        header_row.setContentsMargins(0, 0, 0, 0)
-        header_row.setSpacing(5)
-        header_row.setAlignment(Qt.AlignTop)
-        header_row.addWidget(self.logo_label)
-        header_row.addStretch()
-        header_row.addWidget(settings_button)
-
-        city_label = QLabel("Enter City:")
-        city_label.setFont(QFont("Segoe UI", 11))
-
-        self.city_input = QLineEdit()
-        self.city_input.setPlaceholderText("e.g. New York")
-        self.city_input.setFixedWidth(150)
-        self.city_input.setFont(QFont("Segoe UI", 11))
-
-        self.category_box = QComboBox()
-        self.category_box.setFont(QFont("Segoe UI", 11))
-        self.category_box.addItems(["All", "Music", "Sports", "Arts & Theater", "Film", "Miscellaneous"])
-
-        search_button = QPushButton("🔍 Search")
-        search_button.clicked.connect(self.on_search_click)
-        search_button.setCursor(Qt.PointingHandCursor)
-        search_button.setFont(QFont("Segoe UI", 10, QFont.Bold))
-        search_button.setFixedWidth(100)
-        search_button.setStyleSheet("padding: 6px; background-color: #3f51b5; color: white; border: none; border-radius: 5px;")
-
-        self.output_box = QTextEdit()
-        self.output_box.setReadOnly(True)
-        self.output_box.setFont(QFont("Segoe UI Emoji", 10))
-        self.output_box.setStyleSheet("background-color: #ffffff; padding: 10px;")
-
-        input_row = QHBoxLayout()
-        input_row.addStretch(1)
-        input_row.addWidget(city_label)
-        input_row.addSpacing(10)
-        input_row.addWidget(self.city_input)
-        input_row.addSpacing(10)
-        input_row.addWidget(self.category_box)
-        input_row.addSpacing(10)
-        input_row.addWidget(search_button)
-        input_row.addStretch(1)
-
-        top_container = QVBoxLayout()
-        top_container.setAlignment(Qt.AlignTop)
-        top_container.addLayout(header_row)
-        top_container.addSpacing(10)
-        top_container.addLayout(input_row)
-
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        separator.setFrameShadow(QFrame.Sunken)
-        separator.setStyleSheet("margin-top: 10px; margin-bottom: 10px;")
-
-        layout = QVBoxLayout()
-        layout.addLayout(top_container)
-        layout.addWidget(separator)
-        layout.addWidget(self.output_box)
-
-        self.setLayout(layout)
-
-    def set_logo(self, path):
-        if os.path.exists(path):
-            pixmap = QPixmap(path).scaled(300, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            self.logo_label.setPixmap(pixmap)
-
-    def create_settings_menu(self):
-        menu = QMenu()
-        toggle_theme_action = menu.addAction("🌓 Toggle Dark Mode")
-        toggle_theme_action.triggered.connect(self.toggle_theme)
-        language_action = menu.addAction("🌐 Change Language")
-        language_action.triggered.connect(self.open_language_dialog)
-        return menu
-
-    def toggle_theme(self):
-        if self.dark_mode:
-            self.setStyleSheet("")
-            self.output_box.setStyleSheet("background-color: #ffffff; color: black; padding: 10px;")
-            self.set_logo(self.logo_path_light)
-        else:
-            self.setStyleSheet("background-color: #121212; color: #ffffff;")
-            self.output_box.setStyleSheet("background-color: #2a2a2a; color: #f0f0f0; padding: 10px;")
-            self.set_logo(self.logo_path_dark)
-        self.dark_mode = not self.dark_mode
-
-    def open_language_dialog(self):
-        dialog = LanguageDialog(self)
-        if dialog.exec_():
-            self.language = dialog.selected_language()
-            self.refresh_output_with_translation()
-
-    def refresh_output_with_translation(self):
-        self.output_box.clear()
-        self.last_results.sort(key=lambda x: x.get("event_date", datetime.max))
-        for line in self.last_results:
-            self.output_box.append(self.translate(line["text"]) + "\n")
-        self.output_box.moveCursor(QTextCursor.Start)
-
-    def on_search_click(self):
-        city = self.city_input.text().strip()
-        category = self.category_box.currentText()
-        self.fetch_and_display_events(city, category)
-
-    def fetch_and_display_events(self, city, category):
-        self.output_box.clear()
-        results = self.fetch_all_events(city, category)
-        results.sort(key=lambda x: x.get("event_date", datetime.max))
-        self.last_results = results
-        for line in results:
-            self.output_box.append(self.translate(line["text"]) + "\n")
-        self.output_box.moveCursor(QTextCursor.Start)
-
-    def translate(self, text):
-        translations = {
-            "English": text,
-            "Español": text.replace("Venue", "Lugar").replace("Date", "Fecha").replace("Time", "Hora"),
-            "Français": text.replace("Venue", "Lieu").replace("Date", "Date").replace("Time", "Heure")
-        }
-        return translations.get(self.language, text)
-
-    def fetch_all_events(self, city, category):
-        API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"
-        classification = "" if category == "All" else f"&classificationName={category}"
-        base_url = f"https://app.ticketmaster.com/discovery/v2/events.json?apikey={API_KEY}&city={city}&size=200{classification}"
-        all_events = []
-        page = 0
-        now = datetime.now().date()
-
-        while True:
-            url = f"{base_url}&page={page}"
-            try:
-                response = requests.get(url)
-                data = response.json()
-
-                if "_embedded" not in data or "events" not in data["_embedded"]:
-                    break
-
-                events = data["_embedded"]["events"]
-                for e in events:
-                    raw_date = e["dates"]["start"].get("localDate", "Unknown")
-                    try:
-                        event_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
-                        if event_date < now:
-                            continue
-                    except:
-                        continue
-
-                    name = e.get("name", "N/A")
-                    raw_time = e["dates"]["start"].get("localTime", "Unknown")
-                    venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
-
-                    try:
-                        date = event_date.strftime("%B %d, %Y")
-                    except:
-                        date = raw_date
-
-                    try:
-                        time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
-                        time = time_obj.strftime("%I:%M %p")
-                    except:
-                        time = raw_time
-
-                    entry = f"🎉 <b>{name}</b><br>🏟️ Venue: {venue}<br>📅 Date: {date}<br>⏰ Time: {time}<br><hr>"
-                    all_events.append({"text": entry, "event_date": event_date})
-
-                if page >= data.get("page", {}).get("totalPages", 0) - 1:
-                    break
-
-                page += 1
-
-            except Exception as e:
-                all_events.append({"text": f"❌ Error: {e}", "event_date": datetime.max})
+            if "_embedded" not in data or "events" not in data["_embedded"]:
                 break
 
-        if not all_events:
-            return [{"text": f"⚠️ No events found for '{city}'.", "event_date": datetime.max}]
-        return all_events
+            events = data["_embedded"]["events"]
+            for e in events:
+                raw_date = e["dates"]["start"].get("localDate", "Unknown")
+                try:
+                    event_date = datetime.strptime(raw_date, "%Y-%m-%d").date()
+                    if event_date < now:
+                        continue
+                    if start_date and event_date < start_date:
+                        continue
+                    if end_date and event_date > end_date:
+                        continue
+                except:
+                    continue
 
+                name = e.get("name", "N/A")
+                raw_time = e["dates"]["start"].get("localTime", "Unknown")
+                venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = EventureApp()
-    window.show()
-    sys.exit(app.exec_())
+                try:
+                    date = event_date.strftime("%B %d, %Y")
+                except:
+                    date = raw_date
+
+                try:
+                    time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
+                    time = time_obj.strftime("%I:%M %p")
+                except:
+                    time = raw_time
+
+                entry = f"🎉 <b>{name}</b><br>🏟️ Venue: {venue}<br>📅 Date: {date}<br>⏰ Time: {time}<br><hr>"
+                all_events.append({"text": entry, "event_date": event_date})
+
+            if page >= data.get("page", {}).get("totalPages", 0) - 1:
+                break
+            page += 1
+
+        except Exception as e:
+            all_events.append({"text": f"❌ Error: {e}", "event_date": datetime.max})
+            break
+
+    if not all_events:
+        return [{"text": f"⚠️ No events found for '{city}'.", "event_date": datetime.max}]
+    return sorted(all_events, key=lambda x: x["event_date"])
+
+def main(page: ft.Page):
+    page.title = "Eventure Web"
+    page.scroll = ft.ScrollMode.ALWAYS
+    language = "English"
+    results = []
+
+    city_input = ft.TextField(label="Enter City", width=200)
+    category_dropdown = ft.Dropdown(options=[ft.dropdown.Option(c) for c in CATEGORY_OPTIONS], value="All")
+    start_date_picker = ft.DatePicker()
+    end_date_picker = ft.DatePicker()
+    result_column = ft.Column(scroll=ft.ScrollMode.ALWAYS)
+
+    def translate(text):
+        return LANGUAGE_TRANSLATIONS[language](text)
+
+    def on_search_click(e=None):
+        result_column.controls.clear()
+        city = city_input.value.strip()
+        category = category_dropdown.value
+        start_date = start_date_picker.value
+        end_date = end_date_picker.value
+        event_data = fetch_all_events(city, category, start_date, end_date)
+        for item in event_data:
+            result_column.controls.append(ft.Text(translate(item["text"]), selectable=True))
+        page.update()
+
+    def change_language(e):
+        nonlocal language
+        language = e.control.value
+        on_search_click()
+
+    page.overlay.extend([start_date_picker, end_date_picker])
+
+    search_row = ft.Row([
+        city_input,
+        category_dropdown,
+        ft.ElevatedButton("Start Date", on_click=lambda _: start_date_picker.pick_date()),
+        ft.ElevatedButton("End Date", on_click=lambda _: end_date_picker.pick_date()),
+        ft.ElevatedButton("🔍 Search", on_click=on_search_click),
+        ft.Dropdown(
+            value="English",
+            options=[ft.dropdown.Option("English"), ft.dropdown.Option("Español"), ft.dropdown.Option("Français")],
+            on_change=change_language
+        )
+    ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+
+    page.add(search_row, ft.Divider(), result_column)
+
+ft.app(target=main, view=ft.WEB_BROWSER)
