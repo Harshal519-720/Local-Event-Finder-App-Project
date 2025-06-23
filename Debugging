@@ -99,6 +99,7 @@ def main(page: ft.Page):
     last_results = []
     current_page = 1
     events_per_page = 20
+    expanded_view = False
 
     def translate(text, lang):
         translations = {
@@ -116,26 +117,26 @@ def main(page: ft.Page):
         translated = [translate(r["text"], language_dropdown.value) for r in page_events]
 
         for i, t in enumerate(translated):
-            image = (
-                ft.Image(src=page_events[i]["image_url"], width=180, height=100)
-                if page_events[i].get("image_url")
-                else None
-            )
+            image = ft.Image(src=page_events[i]["image_url"], width=180, height=100) if page_events[i].get("image_url") else None
             summary = t.split("\n")[0]
             details = "\n".join(t.split("\n")[1:])
-            content = ft.Row(
-                [
-                    image if image else ft.Container(),
-                    ft.Text(details, selectable=True, expand=True),
-                ],
-                alignment=ft.MainAxisAlignment.START,
-                spacing=20,
-            )
-            tile = ft.ExpansionTile(
-                title=ft.Text(summary),
-                controls=[ft.Container(content=content, padding=10)]
-            )
-            output_box.controls.append(tile)
+            details_text = ft.Text(details, visible=False, selectable=True, expand=True)
+
+            def toggle_info(e, text_control=details_text):
+                nonlocal expanded_view
+                text_control.visible = not text_control.visible
+                if not expanded_view:
+                    page.window_height += 300
+                    expanded_view = True
+                page.update()
+
+            info_button = ft.TextButton("More Info ⬇️", on_click=toggle_info)
+            event_row = ft.Column([
+                ft.Row([image if image else ft.Container(), ft.Text(summary, expand=True)], spacing=20),
+                info_button,
+                details_text
+            ], spacing=5)
+            output_box.controls.append(ft.Container(content=event_row, padding=10))
 
         render_pagination()
         page.update()
