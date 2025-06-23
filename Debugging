@@ -114,19 +114,29 @@ def main(page: ft.Page):
         end = start + events_per_page
         page_events = last_results[start:end]
         translated = [translate(r["text"], language_dropdown.value) for r in page_events]
+
         for i, t in enumerate(translated):
-            image = ft.Image(src=page_events[i]["image_url"], width=180, height=100) if page_events[i].get("image_url") else None
+            image = (
+                ft.Image(src=page_events[i]["image_url"], width=180, height=100)
+                if page_events[i].get("image_url")
+                else None
+            )
             summary = t.split("\n")[0]
             details = "\n".join(t.split("\n")[1:])
-            content = ft.Row([
-                image if image else ft.Container(),
-                ft.Text(details, selectable=True, expand=True)
-            ], alignment=ft.MainAxisAlignment.START, spacing=20)
+            content = ft.Row(
+                [
+                    image if image else ft.Container(),
+                    ft.Text(details, selectable=True, expand=True),
+                ],
+                alignment=ft.MainAxisAlignment.START,
+                spacing=20,
+            )
             tile = ft.ExpansionTile(
                 title=ft.Text(summary),
-                content=[ft.Container(content=content, padding=10)]
+                controls=[ft.Container(content=content, padding=10)]
             )
             output_box.controls.append(tile)
+
         render_pagination()
         page.update()
 
