@@ -126,12 +126,21 @@ def main(page: ft.Page):
         for event in page_events:
             summary_text = ft.Text(event.get("summary", ""), size=16, weight="bold", expand=True)
             details = f"🏟️ Venue: {event.get('venue', 'Unknown')}\n📅 Date: {event.get('date', 'Unknown')}\n⏰ Time: {event.get('time', 'Unknown')}"
-            detail_text = ft.Text(details, expand=True)
+            detail_text = ft.Text(details, expand=True, selectable=True)
 
-            # Simulated ticket info
-            extra_info = ft.Text(f"🎟️ Tickets available at: {event.get('url', '')}", visible=False, size=12, color=ft.colors.BLUE)
+            ticket_link = ft.Text(
+                spans=[
+                    ft.TextSpan(
+                        "🎟️ Tickets available here",
+                        url=event.get("url", ""),
+                        style=ft.TextStyle(decoration=ft.TextDecoration.UNDERLINE, color=ft.colors.BLUE)
+                    )
+                ],
+                visible=False,
+                selectable=True
+            )
 
-            def show_more_info(e, info=extra_info):
+            def show_more_info(e, info=ticket_link):
                 nonlocal expanded_once
                 info.visible = not info.visible
                 if not expanded_once:
@@ -145,8 +154,8 @@ def main(page: ft.Page):
 
             event_column = ft.Column([
                 ft.Row([image if image else ft.Container(), ft.Column([summary_text, detail_text], expand=True)], spacing=20),
-                info_button,
-                extra_info
+                ft.Row([info_button]),
+                ticket_link
             ], spacing=10)
 
             output_box.controls.append(ft.Container(content=event_column, padding=10))
