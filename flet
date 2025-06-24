@@ -53,14 +53,13 @@ def fetch_all_events(city, category):
                     date = raw_date
 
                 try:
-                    time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(
-                        raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
+                    time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
                     time = time_obj.strftime("%I:%M %p")
                 except:
                     time = raw_time
 
                 entry = {
-                    "summary": f"🎉 {name}",
+                    "summary": f"\U0001f389 {name}",
                     "venue": venue,
                     "date": date,
                     "time": time,
@@ -121,7 +120,6 @@ def main(page: ft.Page):
         width=200,
         on_submit=lambda e: on_search_click(e)
     )
-
     search_button = ft.ElevatedButton(tr("Search"), on_click=lambda e: on_search_click(e))
     dark_mode_switch = ft.Switch(label=tr("Dark Mode"), on_change=lambda e: toggle_theme())
     output_box = ft.Column(scroll=ft.ScrollMode.ALWAYS, expand=True)
@@ -215,38 +213,54 @@ def main(page: ft.Page):
     def render_event_card(event):
         summary_text = ft.Text(event.get("summary", ""), size=16, weight="bold", expand=True,
                                color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK)
+
         details = (
             f"🎪 {tr('Venue')}: {event.get('venue', 'Unknown')}\n"
             f"📅 {tr('Date')}: {event.get('date', 'Unknown')}\n"
             f"⏰ {tr('Time')}: {event.get('time', 'Unknown')}"
         )
+
         detail_text = ft.Text(details, expand=True, selectable=True,
                               color=ft.Colors.WHITE70 if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK87)
 
         ticket_link = ft.Text(
             spans=[
                 ft.TextSpan(
-                    "🎟️ Tickets available here",
+                    "🎩 Tickets available here",
                     url=event.get("url", ""),
                     style=ft.TextStyle(
-                        decoration=ft.TextDecoration.UNDERLINE,
-                        color=ft.Colors.BLUE
-                    )
+                        decoration=ft.TextDecoration.UNDERLINE, color=ft.Colors.BLUE)
                 )
             ],
             selectable=True
         )
 
-        image = ft.Image(src=event.get("image_url", ""), width=180, height=100) if event.get("image_url") else None
-        text_column = ft.Column([summary_text, detail_text, ticket_link], expand=True)
+        image = ft.Image(
+            src=event.get("image_url", ""),
+            width=180,
+            height=100,
+            border_radius=10,
+            fit=ft.ImageFit.COVER
+        ) if event.get("image_url") else None
 
-        return ft.Container(
+        category_badge = ft.Container(
+            content=ft.Text("\ud83c\udfab Event", size=10, color="white"),
+            bgcolor=ft.Colors.BLUE,
+            padding=5,
+            border_radius=20
+        )
+
+        text_column = ft.Column([summary_text, category_badge, detail_text, ticket_link], expand=True)
+
+        card = ft.Container(
             content=ft.Row([image if image else ft.Container(), text_column], spacing=20),
             padding=10,
-            border_radius=10,
+            border_radius=16,
             bgcolor='#000000' if page.theme_mode == ft.ThemeMode.DARK else '#ffffff',
             shadow=ft.BoxShadow(blur_radius=6, color='#00000022')
         )
+
+        return ft.AnimatedSwitcher(content=card, transition=ft.AnimatedSwitcherTransition.FADE, duration=300)
 
     def render_pagination():
         pagination_row.controls.clear()
@@ -254,8 +268,7 @@ def main(page: ft.Page):
         for i in range(1, total_pages + 1):
             style = ft.ButtonStyle(bgcolor="#444444" if page.theme_mode == ft.ThemeMode.DARK else '#e0e0e0') if i == current_page else None
             pagination_row.controls.append(
-                ft.TextButton(str(i), on_click=lambda e, p=i: change_page(p), style=style)
-            )
+                ft.TextButton(str(i), on_click=lambda e, p=i: change_page(p), style=style))
 
     def change_page(page_num):
         nonlocal current_page
