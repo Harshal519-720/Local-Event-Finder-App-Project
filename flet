@@ -106,16 +106,14 @@ def main(page: ft.Page):
     }
 
     language_dropdown = ft.Dropdown(
-        options=[ft.dropdown.Option(lang) for lang in language_options],
-        width=150,
-        value="English"
+        options=[ft.dropdown.Option(lang) for lang in language_options], width=150, value="English"
     )
 
     def tr(key):
         lang = language_dropdown.value
         return translations.get(key, {}).get(lang, key)
 
-    city_input = ft.TextField(label=tr("Enter City"), width=200, on_submit=lambda e: on_search_click(e))
+    city_input = ft.TextField(label=tr("Enter City"), width=200, on_submit=lambda _: on_search_click(None))
     search_button = ft.ElevatedButton(tr("Search"), on_click=lambda e: on_search_click(e))
     dark_mode_switch = ft.Switch(label=tr("Dark Mode"), on_change=lambda e: toggle_theme())
     output_box = ft.Column(scroll=ft.ScrollMode.ALWAYS, expand=True)
@@ -145,12 +143,15 @@ def main(page: ft.Page):
             label,
             on_click=lambda e, l=label: set_view_mode(l),
             style=ft.ButtonStyle(
-                bgcolor=ft.Colors.INDIGO_100 if view_mode == label else None,
-                color=ft.Colors.BLACK if view_mode == label else ft.Colors.INDIGO
+                bgcolor=ft.Colors.BLUE_GREY_700 if view_mode == label else None,
+                color=ft.Colors.WHITE if view_mode == label else ft.Colors.BLUE_GREY_900
             )
         )
 
-    view_toggle_row = ft.Row([styled_toggle_button("List"), styled_toggle_button("Calendar")], alignment=ft.MainAxisAlignment.CENTER)
+    view_toggle_row = ft.Row([
+        styled_toggle_button("List"),
+        styled_toggle_button("Calendar")
+    ], alignment=ft.MainAxisAlignment.CENTER)
 
     last_results = []
     current_page = 1
@@ -167,7 +168,10 @@ def main(page: ft.Page):
     def refresh_output():
         output_box.controls.clear()
         view_toggle_row.controls.clear()
-        view_toggle_row.controls.extend([styled_toggle_button("List"), styled_toggle_button("Calendar")])
+        view_toggle_row.controls.extend([
+            styled_toggle_button("List"),
+            styled_toggle_button("Calendar")
+        ])
 
         if view_mode == "Calendar":
             grouped = defaultdict(list)
@@ -186,7 +190,9 @@ def main(page: ft.Page):
                 page_events[0].get("summary", "").startswith("⚠️ No events found") or
                 page_events[0].get("summary", "").startswith("❌ Error")
             ):
-                output_box.controls.append(ft.Text(page_events[0].get("summary", ""), size=18, weight="bold", color=ft.Colors.RED))
+                output_box.controls.append(
+                    ft.Text(page_events[0].get("summary", ""), size=18, weight="bold", color=ft.Colors.RED)
+                )
                 page.update()
                 return
 
@@ -197,26 +203,15 @@ def main(page: ft.Page):
         page.update()
 
     def render_event_card(event):
-        summary_text = ft.Text(
-            event.get("summary", ""),
-            size=16,
-            weight="bold",
-            expand=True,
-            color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK
-        )
-
+        summary_text = ft.Text(event.get("summary", ""), size=16, weight="bold", expand=True,
+                               color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK87)
         details = (
             f"🎪 {tr('Venue')}: {event.get('venue', 'Unknown')}\n"
             f"📅 {tr('Date')}: {event.get('date', 'Unknown')}\n"
             f"⏰ {tr('Time')}: {event.get('time', 'Unknown')}"
         )
-
-        detail_text = ft.Text(
-            details,
-            expand=True,
-            selectable=True,
-            color=ft.Colors.WHITE70 if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK87
-        )
+        detail_text = ft.Text(details, expand=True, selectable=True,
+                              color=ft.Colors.WHITE70 if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK54)
 
         ticket_link = ft.Text(
             spans=[
@@ -225,39 +220,24 @@ def main(page: ft.Page):
                     url=event.get("url", ""),
                     style=ft.TextStyle(
                         decoration=ft.TextDecoration.UNDERLINE,
-                        color=ft.Colors.PINK
+                        color=ft.Colors.BLUE
                     )
                 )
             ],
             selectable=True
         )
 
-        image = ft.Image(
-            src=event.get("image_url", ""),
-            width=180,
-            height=100,
-            border_radius=10,
-            fit=ft.ImageFit.COVER
-        ) if event.get("image_url") else None
+        image = ft.Image(src=event.get("image_url", ""), width=180, height=100, border_radius=8) if event.get("image_url") else None
 
-        category_badge = ft.Container(
-            content=ft.Text("🎫 Event", size=10, color="white"),
-            bgcolor=ft.Colors.AMBER,
-            padding=5,
-            border_radius=20
-        )
+        text_column = ft.Column([summary_text, detail_text, ticket_link], expand=True)
 
-        text_column = ft.Column([summary_text, category_badge, detail_text, ticket_link], expand=True)
-
-        card = ft.Container(
+        return ft.Container(
             content=ft.Row([image if image else ft.Container(), text_column], spacing=20),
-            padding=10,
-            border_radius=16,
-            bgcolor=ft.Colors.BLUE_GREY_900 if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.INDIGO_50,
-            shadow=ft.BoxShadow(blur_radius=8, color=ft.Colors.with_opacity(0.3, ft.Colors.BLACK))
+            padding=12,
+            border_radius=12,
+            bgcolor=ft.Colors.BLUE_GREY_50 if page.theme_mode == ft.ThemeMode.LIGHT else ft.Colors.BLUE_GREY_800,
+            shadow=ft.BoxShadow(blur_radius=8, color="#00000022")
         )
-
-        return ft.AnimatedSwitcher(content=card, transition=ft.AnimatedSwitcherTransition.FADE, duration=300)
 
     def render_pagination():
         pagination_row.controls.clear()
@@ -304,7 +284,7 @@ def main(page: ft.Page):
     ], alignment=ft.MainAxisAlignment.CENTER, spacing=10)
 
     page.add(ft.Column([
-        ft.Text(tr("Eventure"), size=32, weight="bold"),
+        ft.Text(tr("Eventure"), size=32, weight="bold", color=ft.Colors.BLUE),
         city_row,
         view_toggle_row,
         loading_indicator,
