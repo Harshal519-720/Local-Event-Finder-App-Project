@@ -2,6 +2,7 @@ import flet as ft
 import requests
 import geocoder
 from datetime import datetime
+from collections import defaultdict
 
 
 def get_user_city():
@@ -41,7 +42,8 @@ def fetch_all_events(city, category):
 
                 name = e.get("name", "N/A")
                 raw_time = e["dates"]["start"].get("localTime", "Unknown")
-                venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
+                venue = e["_embedded"]["venues"][0].get(
+                    "name", "Unknown Venue")
                 url = e.get("url", "")
                 images = e.get("images", [])
                 image_url = images[0]["url"] if images else ""
@@ -76,13 +78,13 @@ def fetch_all_events(city, category):
             page += 1
 
         except Exception as e:
-            all_events.append(
-                {"summary": f"❌ Error: {e}", "event_date": datetime.max})
+            all_events.append({"summary": f"❌ Error: {e}",
+                              "event_date": datetime.max})
             break
 
     if not all_events:
         return [{"summary": f"⚠️ No events found for '{city}'.", "event_date": datetime.max}]
-    return sorted(all_events, key=lambda x: x["event_date"])
+    return sorted(all_events, key=lambda x: (x["event_date"], x["summary"]))
 
 
 def main(page: ft.Page):
@@ -94,44 +96,17 @@ def main(page: ft.Page):
     page.window_height = 700
 
     language_options = ["English", "Español", "Français"]
-    categories = ["All", "Music", "Sports", "Arts & Theater", "Film", "Miscellaneous"]
+    categories = ["All", "Music", "Sports",
+                  "Arts & Theater", "Film", "Miscellaneous"]
 
     translations = {
-        "Enter City": {
-            "English": "Enter City",
-            "Español": "Ingrese ciudad",
-            "Français": "Entrez une ville"
-        },
-        "Search": {
-            "English": "🔍 Search",
-            "Español": "🔍 Buscar",
-            "Français": "🔍 Rechercher"
-        },
-        "Dark Mode": {
-            "English": "Dark Mode",
-            "Español": "Modo Oscuro",
-            "Français": "Mode Sombre"
-        },
-        "Eventure": {
-            "English": "Eventure",
-            "Español": "Eventure",
-            "Français": "Eventure"
-        },
-        "Venue": {
-            "English": "Venue",
-            "Español": "Lugar",
-            "Français": "Lieu"
-        },
-        "Date": {
-            "English": "Date",
-            "Español": "Fecha",
-            "Français": "Date"
-        },
-        "Time": {
-            "English": "Time",
-            "Español": "Hora",
-            "Français": "Heure"
-        }
+        "Enter City": {"English": "Enter City", "Español": "Ingrese ciudad", "Français": "Entrez une ville"},
+        "Search": {"English": "🔍 Search", "Español": "🔍 Buscar", "Français": "🔍 Rechercher"},
+        "Dark Mode": {"English": "Dark Mode", "Español": "Modo Oscuro", "Français": "Mode Sombre"},
+        "Eventure": {"English": "Eventure", "Español": "Eventure", "Français": "Eventure"},
+        "Venue": {"English": "Venue", "Español": "Lugar", "Français": "Lieu"},
+        "Date": {"English": "Date", "Español": "Fecha", "Français": "Date"},
+        "Time": {"English": "Time", "Español": "Hora", "Français": "Heure"}
     }
 
     language_dropdown = ft.Dropdown(
@@ -145,8 +120,10 @@ def main(page: ft.Page):
         return translations.get(key, {}).get(lang, key)
 
     city_input = ft.TextField(label=tr("Enter City"), width=200)
-    search_button = ft.ElevatedButton(tr("Search"), on_click=lambda e: on_search_click(e))
-    dark_mode_switch = ft.Switch(label=tr("Dark Mode"), on_change=lambda e: toggle_theme())
+    search_button = ft.ElevatedButton(
+        tr("Search"), on_click=lambda e: on_search_click(e))
+    dark_mode_switch = ft.Switch(
+        label=tr("Dark Mode"), on_change=lambda e: toggle_theme())
     output_box = ft.Column(scroll=ft.ScrollMode.ALWAYS, expand=True)
     loading_indicator = ft.ProgressRing(visible=False)
     error_text = ft.Text("", color=ft.Colors.RED, visible=False)
@@ -157,6 +134,30 @@ def main(page: ft.Page):
         width=200,
         value="All"
     )
+
+    language_dropdown.on_change = lambda e: refresh_language()
+
+    view_mode = "List"
+
+    def set_view_mode(mode):
+        nonlocal view_mode
+        view_mode = mode
+        refresh_output()
+
+    def styled_toggle_button(label):
+        return ft.TextButton(
+            label,
+            on_click=lambda e, l=label: set_view_mode(l),
+            style=ft.ButtonStyle(
+                bgcolor=ft.Colors.BLUE_200 if view_mode == label else None,
+                color=ft.Colors.BLACK if view_mode == label else ft.Colors.BLUE
+            )
+        )
+
+    view_toggle_row = ft.Row([
+        styled_toggle_button("List"),
+        styled_toggle_button("Calendar")
+    ], alignment=ft.MainAxisAlignment.CENTER)
 
     last_results = []
     current_page = 1
@@ -170,75 +171,92 @@ def main(page: ft.Page):
         refresh_output()
         page.update()
 
-    language_dropdown.on_change = lambda e: refresh_language()
-
     def refresh_output():
         output_box.controls.clear()
-        start = (current_page - 1) * events_per_page
-        end = start + events_per_page
-        page_events = last_results[start:end]
+        view_toggle_row.controls.clear()
+        view_toggle_row.controls.extend([
+            styled_toggle_button("List"),
+            styled_toggle_button("Calendar")
+        ])
 
-        if len(page_events) == 1 and (
-            page_events[0].get("summary", "").startswith("⚠️ No events found") or
-            page_events[0].get("summary", "").startswith("❌ Error")
-        ):
-            output_box.controls.append(
-                ft.Text(page_events[0].get("summary", ""),
-                        size=18, weight="bold", color=ft.Colors.RED)
-            )
-            page.update()
-            return
+        if view_mode == "Calendar":
+            grouped = defaultdict(list)
+            for event in sorted(last_results, key=lambda x: (x["event_date"], x["summary"])):
+                grouped[event["date"]].append(event)
+            for date, events in grouped.items():
+                output_box.controls.append(
+                    ft.Text(date, size=20, weight="bold"))
+                for event in events:
+                    output_box.controls.append(render_event_card(event))
+        else:
+            start = (current_page - 1) * events_per_page
+            end = start + events_per_page
+            page_events = last_results[start:end]
 
-        for event in page_events:
-            summary_text = ft.Text(event.get("summary", ""), size=16, weight="bold", expand=True,
-                                   color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK)
+            if len(page_events) == 1 and (
+                page_events[0].get("summary", "").startswith("⚠️ No events found") or
+                page_events[0].get("summary", "").startswith("❌ Error")
+            ):
+                output_box.controls.append(
+                    ft.Text(page_events[0].get("summary", ""),
+                            size=18, weight="bold", color=ft.Colors.RED)
+                )
+                page.update()
+                return
 
-            details = (
-                f"🎪 {tr('Venue')}: {event.get('venue', 'Unknown')}\n"
-                f"📅 {tr('Date')}: {event.get('date', 'Unknown')}\n"
-                f"⏰ {tr('Time')}: {event.get('time', 'Unknown')}"
-            )
+            for event in page_events:
+                output_box.controls.append(render_event_card(event))
 
-            detail_text = ft.Text(details, expand=True, selectable=True,
-                                  color=ft.Colors.WHITE70 if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK87)
-
-            ticket_link = ft.Text(
-                spans=[
-                    ft.TextSpan(
-                        "🎟️ Tickets available here",
-                        url=event.get("url", ""),
-                        style=ft.TextStyle(
-                            decoration=ft.TextDecoration.UNDERLINE,
-                            color=ft.Colors.BLUE
-                        )
-                    )
-                ],
-                selectable=True
-            )
-
-            image = ft.Image(src=event.get("image_url", ""), width=180, height=100) if event.get("image_url") else None
-            text_column = ft.Column([summary_text, detail_text, ticket_link], expand=True)
-            event_column = ft.Container(
-                content=ft.Row([image if image else ft.Container(), text_column], spacing=20),
-                padding=10,
-                border_radius=10,
-                bgcolor='#000000' if page.theme_mode == ft.ThemeMode.DARK else '#ffffff',
-                shadow=ft.BoxShadow(blur_radius=6, color='#00000022')
-            )
-
-            output_box.controls.append(event_column)
-
-        render_pagination()
+            render_pagination()
         page.update()
+
+    def render_event_card(event):
+        summary_text = ft.Text(event.get("summary", ""), size=16, weight="bold", expand=True,
+                               color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK)
+        details = (
+            f"🎪 {tr('Venue')}: {event.get('venue', 'Unknown')}\n"
+            f"📅 {tr('Date')}: {event.get('date', 'Unknown')}\n"
+            f"⏰ {tr('Time')}: {event.get('time', 'Unknown')}"
+        )
+        detail_text = ft.Text(details, expand=True, selectable=True,
+                              color=ft.Colors.WHITE70 if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK87)
+
+        ticket_link = ft.Text(
+            spans=[
+                ft.TextSpan(
+                    "🎟️ Tickets available here",
+                    url=event.get("url", ""),
+                    style=ft.TextStyle(
+                        decoration=ft.TextDecoration.UNDERLINE, color=ft.Colors.BLUE)
+                )
+            ],
+            selectable=True
+        )
+
+        image = ft.Image(src=event.get("image_url", ""), width=180,
+                         height=100) if event.get("image_url") else None
+
+        text_column = ft.Column(
+            [summary_text, detail_text, ticket_link], expand=True)
+
+        return ft.Container(
+            content=ft.Row([image if image else ft.Container(),
+                           text_column], spacing=20),
+            padding=10,
+            border_radius=10,
+            bgcolor='#000000' if page.theme_mode == ft.ThemeMode.DARK else '#ffffff',
+            shadow=ft.BoxShadow(blur_radius=6, color='#00000022')
+        )
 
     def render_pagination():
         pagination_row.controls.clear()
-        total_pages = (len(last_results) + events_per_page - 1) // events_per_page
+        total_pages = (len(last_results) +
+                       events_per_page - 1) // events_per_page
         for i in range(1, total_pages + 1):
-            style = ft.ButtonStyle(bgcolor="#444444" if page.theme_mode == ft.ThemeMode.DARK else '#e0e0e0') if i == current_page else None
-            pagination_row.controls.append(
-                ft.TextButton(str(i), on_click=lambda e, p=i: change_page(p), style=style)
-            )
+            style = ft.ButtonStyle(bgcolor="#444444" if page.theme_mode ==
+                                   ft.ThemeMode.DARK else '#e0e0e0') if i == current_page else None
+            pagination_row.controls.append(ft.TextButton(
+                str(i), on_click=lambda e, p=i: change_page(p), style=style))
 
     def change_page(page_num):
         nonlocal current_page
@@ -280,6 +298,7 @@ def main(page: ft.Page):
     page.add(ft.Column([
         ft.Text(tr("Eventure"), size=32, weight="bold"),
         city_row,
+        view_toggle_row,
         loading_indicator,
         error_text,
         output_box,
@@ -289,7 +308,8 @@ def main(page: ft.Page):
     user_city = get_user_city()
     if user_city:
         city_input.value = user_city
-        last_results.extend(fetch_all_events(user_city, category_dropdown.value))
+        last_results.extend(fetch_all_events(
+            user_city, category_dropdown.value))
         refresh_output()
 
 
