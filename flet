@@ -119,7 +119,7 @@ def main(page: ft.Page):
     city_input = ft.TextField(
         label=tr("Enter City"),
         width=200,
-        on_submit=lambda e: on_search_click(e)  # Enter key support
+        on_submit=lambda e: on_search_click(e)
     )
 
     search_button = ft.ElevatedButton(tr("Search"), on_click=lambda e: on_search_click(e))
@@ -141,8 +141,12 @@ def main(page: ft.Page):
 
     def set_view_mode(mode):
         nonlocal view_mode
+        loading_indicator.visible = True
+        page.update()
         view_mode = mode
         refresh_output()
+        loading_indicator.visible = False
+        page.update()
 
     def styled_toggle_button(label):
         return ft.TextButton(
@@ -184,8 +188,7 @@ def main(page: ft.Page):
             for event in sorted(last_results, key=lambda x: (x["event_date"], x["summary"])):
                 grouped[event["date"]].append(event)
             for date, events in grouped.items():
-                output_box.controls.append(
-                    ft.Text(date, size=20, weight="bold"))
+                output_box.controls.append(ft.Text(date, size=20, weight="bold"))
                 for event in events:
                     output_box.controls.append(render_event_card(event))
         else:
@@ -198,8 +201,7 @@ def main(page: ft.Page):
                 page_events[0].get("summary", "").startswith("❌ Error")
             ):
                 output_box.controls.append(
-                    ft.Text(page_events[0].get("summary", ""),
-                            size=18, weight="bold", color=ft.Colors.RED)
+                    ft.Text(page_events[0].get("summary", ""), size=18, weight="bold", color=ft.Colors.RED)
                 )
                 page.update()
                 return
@@ -235,9 +237,7 @@ def main(page: ft.Page):
             selectable=True
         )
 
-        image = ft.Image(src=event.get("image_url", ""), width=180,
-                         height=100) if event.get("image_url") else None
-
+        image = ft.Image(src=event.get("image_url", ""), width=180, height=100) if event.get("image_url") else None
         text_column = ft.Column([summary_text, detail_text, ticket_link], expand=True)
 
         return ft.Container(
