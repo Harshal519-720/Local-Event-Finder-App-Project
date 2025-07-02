@@ -1,9 +1,8 @@
 import flet as ft
 import requests
 import geocoder
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import defaultdict
-
 
 def get_user_city():
     try:
@@ -11,7 +10,6 @@ def get_user_city():
         return g.city or ""
     except:
         return ""
-
 
 def fetch_all_events(city, category):
     API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"
@@ -65,7 +63,8 @@ def fetch_all_events(city, category):
                     "time": time,
                     "url": url,
                     "image_url": image_url,
-                    "event_date": event_date
+                    "event_date": event_date,
+                    "raw_time": raw_time
                 }
 
                 all_events.append(entry)
@@ -82,7 +81,6 @@ def fetch_all_events(city, category):
     if not all_events:
         return [{"summary": f"⚠️ No events found for '{city}'.", "event_date": datetime.max}]
     return sorted(all_events, key=lambda x: (x["event_date"], x["summary"]))
-
 
 def main(page: ft.Page):
     page.title = "Eventure - Flet Edition"
@@ -165,6 +163,18 @@ def main(page: ft.Page):
         refresh_output()
         page.update()
 
+    def format_countdown(delta: timedelta):
+        days = delta.days
+        hours, remainder = divmod(delta.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        parts = []
+        if days > 0:
+            parts.append(f"{days}d")
+        parts.append(f"{hours}h")
+        parts.append(f"{minutes}m")
+        parts.append(f"{seconds}s")
+        return " ".join(parts)
+
     def refresh_output():
         output_box.controls.clear()
         view_toggle_row.controls.clear()
@@ -227,9 +237,23 @@ def main(page: ft.Page):
             selectable=True
         )
 
+        countdown_text = ft.Text("", size=14, color=ft.Colors.RED_400)
+
+        event_datetime = datetime.combine(event['event_date'], datetime.min.time())
+        raw_time = event.get('raw_time', '')
+        try:
+            time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
+            event_datetime = event_datetime.replace(hour=time_obj.hour, minute=time_obj.minute, second=time_obj.second)
+        except:
+            pass
+
+        delta = event_datetime - datetime.now()
+        if timedelta(0) < delta <= timedelta(days=2):
+            countdown_text.value = f"⏳ Starts in: {format_countdown(delta)}"
+
         image = ft.Image(src=event.get("image_url", ""), width=180, height=100, border_radius=8) if event.get("image_url") else None
 
-        text_column = ft.Column([summary_text, detail_text, ticket_link], expand=True)
+        text_column = ft.Column([summary_text, detail_text, ticket_link, countdown_text], expand=True)
 
         return ft.Container(
             content=ft.Row([image if image else ft.Container(), text_column], spacing=20),
@@ -298,6 +322,5 @@ def main(page: ft.Page):
         city_input.value = user_city
         last_results.extend(fetch_all_events(user_city, category_dropdown.value))
         refresh_output()
-
 
 ft.app(target=main, view=ft.WEB_BROWSER)
