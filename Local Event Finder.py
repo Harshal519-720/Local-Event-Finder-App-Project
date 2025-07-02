@@ -1,6 +1,7 @@
 import flet as ft
 import requests
 import geocoder
+import calendar
 from datetime import datetime, timedelta
 from collections import defaultdict
 
@@ -184,13 +185,7 @@ def main(page: ft.Page):
         ])
 
         if view_mode == "Calendar":
-            grouped = defaultdict(list)
-            for event in sorted(last_results, key=lambda x: (x["event_date"], x["summary"])):
-                grouped[event["date"]].append(event)
-            for date, events in grouped.items():
-                output_box.controls.append(ft.Text(date, size=20, weight="bold"))
-                for event in events:
-                    output_box.controls.append(render_event_card(event))
+            render_calendar_view()
         else:
             start = (current_page - 1) * events_per_page
             end = start + events_per_page
@@ -211,6 +206,63 @@ def main(page: ft.Page):
 
             render_pagination()
         page.update()
+
+    def render_calendar_view():
+        today = datetime.now()
+        year = today.year
+        month = today.month
+
+        cal = calendar.Calendar()
+        month_days = cal.monthdatescalendar(year, month)
+
+        selected_date_text = ft.Text("", size=18, weight="bold")
+        events_column = ft.Column()
+
+        def show_events_for_date(date):
+            selected_date_text.value = date.strftime("%B %d, %Y")
+            events_column.controls.clear()
+            date_str = date.strftime("%B %d, %Y")
+            day_events = [e for e in last_results if e["date"] == date_str]
+            if day_events:
+                for event in day_events:
+                    events_column.controls.append(render_event_card(event))
+            else:
+                events_column.controls.append(ft.Text("No events on this day.", size=14))
+            page.update()
+
+        calendar_grid = []
+
+        # Weekday headers
+        calendar_grid.append(
+            ft.Row(
+                [ft.Text(day, weight="bold", width=40, text_align=ft.TextAlign.CENTER) for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]],
+                alignment=ft.MainAxisAlignment.CENTER
+            )
+        )
+
+        # Days grid
+        for week in month_days:
+            week_row = ft.Row([], alignment=ft.MainAxisAlignment.CENTER)
+            for day in week:
+                is_current_month = (day.month == month)
+                has_event = any(e["date"] == day.strftime("%B %d, %Y") for e in last_results)
+
+                day_button = ft.ElevatedButton(
+                    str(day.day),
+                    width=40,
+                    height=40,
+                    on_click=lambda e, d=day: show_events_for_date(d),
+                    disabled=not is_current_month,
+                    style=ft.ButtonStyle(
+                        bgcolor=ft.Colors.BLUE_200 if has_event else (ft.Colors.GREY_200 if is_current_month else None)
+                    )
+                )
+                week_row.controls.append(day_button)
+            calendar_grid.append(week_row)
+
+        output_box.controls.append(ft.Column(calendar_grid))
+        output_box.controls.append(selected_date_text)
+        output_box.controls.append(events_column)
 
     def render_event_card(event):
         summary_text = ft.Text(event.get("summary", ""), size=16, weight="bold", expand=True,
@@ -265,7 +317,7 @@ def main(page: ft.Page):
 
     def render_pagination():
         pagination_row.controls.clear()
-        total_pages = (len(last_results) + events_per_page - 1) // events_per_page
+        total_pages = max(1, (len(last_results) + events_per_page - 1) // events_per_page)
         for i in range(1, total_pages + 1):
             style = ft.ButtonStyle(bgcolor="#444444" if page.theme_mode == ft.ThemeMode.DARK else '#e0e0e0') if i == current_page else None
             pagination_row.controls.append(ft.TextButton(str(i), on_click=lambda e, p=i: change_page(p), style=style))
