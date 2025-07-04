@@ -91,14 +91,11 @@ def main(page: ft.Page):
     page.window_width = 720
     page.window_height = 700
 
-    # --------------------------
-    # Set background color function
-    # --------------------------
     def set_background_color():
         if page.theme_mode == ft.ThemeMode.LIGHT:
-            page.bgcolor = ft.Colors.LIGHT_BLUE_50  # Light sky blue
+            page.bgcolor = ft.Colors.LIGHT_BLUE_50
         else:
-            page.bgcolor = ft.Colors.BLUE_GREY_900  # Deep blue-grey for dark mode
+            page.bgcolor = ft.Colors.BLUE_GREY_900
 
     set_background_color()
 
@@ -267,7 +264,8 @@ def main(page: ft.Page):
                     on_click=lambda e, d=day: show_events_for_date(d),
                     disabled=not is_current_month,
                     style=ft.ButtonStyle(
-                        bgcolor=ft.Colors.BLUE_200 if has_event else (ft.Colors.GREY_200 if is_current_month else None)
+                        bgcolor=ft.Colors.BLUE_200 if has_event else (ft.Colors.GREY_200 if is_current_month else None),
+                        color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK
                     )
                 )
                 week_row.controls.append(day_button)
@@ -343,7 +341,7 @@ def main(page: ft.Page):
 
     def toggle_theme():
         page.theme_mode = ft.ThemeMode.DARK if dark_mode_switch.value else ft.ThemeMode.LIGHT
-        set_background_color()  # Apply background on theme toggle
+        set_background_color()
         refresh_output()
         page.update()
 
