@@ -91,6 +91,17 @@ def main(page: ft.Page):
     page.window_width = 720
     page.window_height = 700
 
+    # --------------------------
+    # Set background color function
+    # --------------------------
+    def set_background_color():
+        if page.theme_mode == ft.ThemeMode.LIGHT:
+            page.bgcolor = ft.Colors.LIGHT_BLUE_50  # Light sky blue
+        else:
+            page.bgcolor = ft.Colors.BLUE_GREY_900  # Deep blue-grey for dark mode
+
+    set_background_color()
+
     language_options = ["English", "Español", "Français"]
     categories = ["All", "Music", "Sports", "Arts & Theater", "Film", "Miscellaneous"]
 
@@ -138,12 +149,16 @@ def main(page: ft.Page):
         page.update()
 
     def styled_toggle_button(label):
+        active_bg = ft.Colors.BLUE_GREY_700 if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLUE_200
+        active_color = ft.Colors.WHITE
+        inactive_color = ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLUE_GREY_900
+
         return ft.TextButton(
             label,
             on_click=lambda e, l=label: set_view_mode(l),
             style=ft.ButtonStyle(
-                bgcolor=ft.Colors.BLUE_GREY_700 if view_mode == label else None,
-                color=ft.Colors.WHITE if view_mode == label else ft.Colors.BLUE_GREY_900
+                bgcolor=active_bg if view_mode == label else None,
+                color=active_color if view_mode == label else inactive_color
             )
         )
 
@@ -232,7 +247,6 @@ def main(page: ft.Page):
 
         calendar_grid = []
 
-        # Weekday headers
         calendar_grid.append(
             ft.Row(
                 [ft.Text(day, weight="bold", width=40, text_align=ft.TextAlign.CENTER) for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]],
@@ -240,7 +254,6 @@ def main(page: ft.Page):
             )
         )
 
-        # Days grid
         for week in month_days:
             week_row = ft.Row([], alignment=ft.MainAxisAlignment.CENTER)
             for day in week:
@@ -309,9 +322,10 @@ def main(page: ft.Page):
 
         return ft.Container(
             content=ft.Row([image if image else ft.Container(), text_column], spacing=20),
-            padding=12,
+            padding=16,
             border_radius=12,
-            bgcolor=ft.Colors.BLUE_GREY_50 if page.theme_mode == ft.ThemeMode.LIGHT else ft.Colors.BLUE_GREY_800,
+            bgcolor=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.LIGHT else ft.Colors.BLUE_GREY_800,
+            border=ft.border.all(1, ft.Colors.LIGHT_BLUE_200) if page.theme_mode == ft.ThemeMode.LIGHT else None,
             shadow=ft.BoxShadow(blur_radius=8, color="#00000022")
         )
 
@@ -329,6 +343,7 @@ def main(page: ft.Page):
 
     def toggle_theme():
         page.theme_mode = ft.ThemeMode.DARK if dark_mode_switch.value else ft.ThemeMode.LIGHT
+        set_background_color()  # Apply background on theme toggle
         refresh_output()
         page.update()
 
