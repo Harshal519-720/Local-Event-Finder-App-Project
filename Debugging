@@ -1,10 +1,11 @@
 import flet as ft
 import requests
 import geocoder
-import folium
-from datetime import datetime
+import calendar
+from datetime import datetime, timedelta
 from collections import defaultdict
-
+import json
+import urllib.parse
 
 def get_user_city():
     try:
@@ -13,6 +14,80 @@ def get_user_city():
     except:
         return ""
 
+def get_weather_forecast(city, date):
+    """Get weather forecast for a specific city and date"""
+    try:
+        # Using OpenWeatherMap API (you'll need to get a free API key)
+        WEATHER_API_KEY = "your_openweather_api_key"  # Replace with your API key
+        
+        # Get coordinates for the city
+        geocoding_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city}&limit=1&appid={WEATHER_API_KEY}"
+        geo_response = requests.get(geocoding_url)
+        geo_data = geo_response.json()
+        
+        if not geo_data:
+            return None
+            
+        lat, lon = geo_data[0]['lat'], geo_data[0]['lon']
+        
+        # Get weather forecast
+        weather_url = f"http://api.openweathermap.org/data/2.5/forecast?lat={lat}&lon={lon}&appid={WEATHER_API_KEY}&units=metric"
+        weather_response = requests.get(weather_url)
+        weather_data = weather_response.json()
+        
+        # Find forecast for the event date
+        event_date = datetime.strptime(date, "%B %d, %Y").date()
+        for forecast in weather_data['list']:
+            forecast_date = datetime.fromtimestamp(forecast['dt']).date()
+            if forecast_date == event_date:
+                return {
+                    'temperature': round(forecast['main']['temp']),
+                    'description': forecast['weather'][0]['description'].title(),
+                    'icon': forecast['weather'][0]['icon']
+                }
+        return None
+    except:
+        return None
+
+def get_venue_coordinates(venue_name, city):
+    """Get coordinates for a venue using Google Geocoding API"""
+    try:
+        GOOGLE_API_KEY = "your_google_api_key"  # Replace with your API key
+        query = f"{venue_name}, {city}"
+        encoded_query = urllib.parse.quote(query)
+        
+        url = f"https://maps.googleapis.com/maps/api/geocode/json?address={encoded_query}&key={GOOGLE_API_KEY}"
+        response = requests.get(url)
+        data = response.json()
+        
+        if data['results']:
+            location = data['results'][0]['geometry']['location']
+            return {
+                'lat': location['lat'],
+                'lng': location['lng'],
+                'formatted_address': data['results'][0]['formatted_address']
+            }
+        return None
+    except:
+        return None
+
+def generate_maps_url(venue_name, city):
+    """Generate Google Maps URL for venue location"""
+    query = f"{venue_name}, {city}"
+    encoded_query = urllib.parse.quote(query)
+    return f"https://www.google.com/maps/search/?api=1&query={encoded_query}"
+
+def generate_uber_url(venue_name, city):
+    """Generate Uber deep link for transportation to venue"""
+    query = f"{venue_name}, {city}"
+    encoded_query = urllib.parse.quote(query)
+    return f"https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]={encoded_query}"
+
+def generate_lyft_url(venue_name, city):
+    """Generate Lyft deep link for transportation to venue"""
+    query = f"{venue_name}, {city}"
+    encoded_query = urllib.parse.quote(query)
+    return f"https://lyft.com/ride?destination[address]={encoded_query}"
 
 def fetch_all_events(city, category):
     API_KEY = "qGDnOricwKqTRb66e5xyDWPYOWsQGDCT"
@@ -43,16 +118,10 @@ def fetch_all_events(city, category):
 
                 name = e.get("name", "N/A")
                 raw_time = e["dates"]["start"].get("localTime", "Unknown")
-                venue_info = e["_embedded"]["venues"][0]
-                venue = venue_info.get("name", "Unknown Venue")
-                url_ = e.get("url", "")
+                venue = e["_embedded"]["venues"][0].get("name", "Unknown Venue")
+                url = e.get("url", "")
                 images = e.get("images", [])
                 image_url = images[0]["url"] if images else ""
-
-                # Get lat/lon if available
-                location = venue_info.get("location", {})
-                latitude = location.get("latitude")
-                longitude = location.get("longitude")
 
                 try:
                     date = event_date.strftime("%B %d, %Y")
@@ -65,16 +134,30 @@ def fetch_all_events(city, category):
                 except:
                     time = raw_time
 
+                # Add third-party service data
+                weather = get_weather_forecast(city, date)
+                maps_url = generate_maps_url(venue, city)
+                uber_url = generate_uber_url(venue, city)
+                lyft_url = generate_lyft_url(venue, city)
+                
+                # Debug: Print URLs to verify they're being generated
+                print(f"Maps URL: {maps_url}")
+                print(f"Uber URL: {uber_url}")
+                print(f"Lyft URL: {lyft_url}")
+
                 entry = {
                     "summary": f"🎉 {name}",
                     "venue": venue,
                     "date": date,
                     "time": time,
-                    "url": url_,
+                    "url": url,
                     "image_url": image_url,
                     "event_date": event_date,
-                    "latitude": latitude,
-                    "longitude": longitude
+                    "raw_time": raw_time,
+                    "weather": weather,
+                    "maps_url": maps_url,
+                    "uber_url": uber_url,
+                    "lyft_url": lyft_url
                 }
 
                 all_events.append(entry)
@@ -92,34 +175,21 @@ def fetch_all_events(city, category):
         return [{"summary": f"⚠️ No events found for '{city}'.", "event_date": datetime.max}]
     return sorted(all_events, key=lambda x: (x["event_date"], x["summary"]))
 
-
-def generate_map(events):
-    # Center map on first event with location or default USA center
-    lat, lon = 39.8283, -98.5795  # USA center
-    for e in events:
-        if e.get("latitude") and e.get("longitude"):
-            lat, lon = float(e["latitude"]), float(e["longitude"])
-            break
-
-    m = folium.Map(location=[lat, lon], zoom_start=4)
-
-    for e in events:
-        if e.get("latitude") and e.get("longitude"):
-            folium.Marker(
-                location=[float(e["latitude"]), float(e["longitude"])],
-                popup=f"<b>{e['summary']}</b><br>{e['venue']}<br>{e['date']} {e['time']}<br><a href='{e['url']}' target='_blank'>Tickets</a>",
-                tooltip=e['summary']
-            ).add_to(m)
-
-    m.save("events_map.html")
-
-
 def main(page: ft.Page):
     page.title = "Eventure - Flet Edition"
     page.scroll = ft.ScrollMode.AUTO
     page.theme_mode = ft.ThemeMode.LIGHT
+    page.theme = ft.Theme()
     page.window_width = 720
     page.window_height = 700
+
+    def set_background_color():
+        if page.theme_mode == ft.ThemeMode.LIGHT:
+            page.bgcolor = ft.Colors.LIGHT_BLUE_50
+        else:
+            page.bgcolor = ft.Colors.BLUE_GREY_900
+
+    set_background_color()
 
     language_options = ["English", "Español", "Français"]
     categories = ["All", "Music", "Sports", "Arts & Theater", "Film", "Miscellaneous"]
@@ -131,7 +201,11 @@ def main(page: ft.Page):
         "Eventure": {"English": "Eventure", "Español": "Eventure", "Français": "Eventure"},
         "Venue": {"English": "Venue", "Español": "Lugar", "Français": "Lieu"},
         "Date": {"English": "Date", "Español": "Fecha", "Français": "Date"},
-        "Time": {"English": "Time", "Español": "Hora", "Français": "Heure"}
+        "Time": {"English": "Time", "Español": "Hora", "Français": "Heure"},
+        "Weather": {"English": "Weather", "Español": "Clima", "Français": "Météo"},
+        "Map": {"English": "View on Map", "Español": "Ver en Mapa", "Français": "Voir sur la Carte"},
+        "Uber": {"English": "Book Uber", "Español": "Reservar Uber", "Français": "Réserver Uber"},
+        "Lyft": {"English": "Book Lyft", "Español": "Reservar Lyft", "Français": "Réserver Lyft"}
     }
 
     language_dropdown = ft.Dropdown(
@@ -168,19 +242,22 @@ def main(page: ft.Page):
         page.update()
 
     def styled_toggle_button(label):
+        active_bg = ft.Colors.BLUE_GREY_700 if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLUE_200
+        active_color = ft.Colors.WHITE
+        inactive_color = ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLUE_GREY_900
+
         return ft.TextButton(
             label,
             on_click=lambda e, l=label: set_view_mode(l),
             style=ft.ButtonStyle(
-                bgcolor=ft.Colors.BLUE_GREY_700 if view_mode == label else None,
-                color=ft.Colors.WHITE if view_mode == label else ft.Colors.BLUE_GREY_900
+                bgcolor=active_bg if view_mode == label else None,
+                color=active_color if view_mode == label else inactive_color
             )
         )
 
     view_toggle_row = ft.Row([
         styled_toggle_button("List"),
-        styled_toggle_button("Calendar"),
-        styled_toggle_button("Map")
+        styled_toggle_button("Calendar")
     ], alignment=ft.MainAxisAlignment.CENTER)
 
     last_results = []
@@ -195,28 +272,28 @@ def main(page: ft.Page):
         refresh_output()
         page.update()
 
+    def format_countdown(delta: timedelta):
+        days = delta.days
+        hours, remainder = divmod(delta.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        parts = []
+        if days > 0:
+            parts.append(f"{days}d")
+        parts.append(f"{hours}h")
+        parts.append(f"{minutes}m")
+        parts.append(f"{seconds}s")
+        return " ".join(parts)
+
     def refresh_output():
         output_box.controls.clear()
         view_toggle_row.controls.clear()
         view_toggle_row.controls.extend([
             styled_toggle_button("List"),
-            styled_toggle_button("Calendar"),
-            styled_toggle_button("Map")
+            styled_toggle_button("Calendar")
         ])
 
-        if view_mode == "Map":
-            generate_map(last_results)
-            map_frame = ft.IFrame(src="events_map.html", width=700, height=500)
-            output_box.controls.append(map_frame)
-
-        elif view_mode == "Calendar":
-            grouped = defaultdict(list)
-            for event in sorted(last_results, key=lambda x: (x["event_date"], x["summary"])):
-                grouped[event["date"]].append(event)
-            for date, events in grouped.items():
-                output_box.controls.append(ft.Text(date, size=20, weight="bold"))
-                for event in events:
-                    output_box.controls.append(render_event_card(event))
+        if view_mode == "Calendar":
+            render_calendar_view()
         else:
             start = (current_page - 1) * events_per_page
             end = start + events_per_page
@@ -238,14 +315,80 @@ def main(page: ft.Page):
             render_pagination()
         page.update()
 
+    def render_calendar_view():
+        today = datetime.now()
+        year = today.year
+        month = today.month
+
+        cal = calendar.Calendar()
+        month_days = cal.monthdatescalendar(year, month)
+
+        selected_date_text = ft.Text("", size=18, weight="bold")
+        events_column = ft.Column()
+
+        def show_events_for_date(date):
+            selected_date_text.value = date.strftime("%B %d, %Y")
+            events_column.controls.clear()
+            date_str = date.strftime("%B %d, %Y")
+            day_events = [e for e in last_results if e["date"] == date_str]
+            if day_events:
+                for event in day_events:
+                    events_column.controls.append(render_event_card(event))
+            else:
+                events_column.controls.append(ft.Text("No events on this day.", size=14))
+            page.update()
+
+        calendar_grid = []
+
+        calendar_grid.append(
+            ft.Row(
+                [ft.Text(day, weight="bold", width=40, text_align=ft.TextAlign.CENTER) for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]],
+                alignment=ft.MainAxisAlignment.CENTER
+            )
+        )
+
+        for week in month_days:
+            week_row = ft.Row([], alignment=ft.MainAxisAlignment.CENTER)
+            for day in week:
+                is_current_month = (day.month == month)
+                has_event = any(e["date"] == day.strftime("%B %d, %Y") for e in last_results)
+
+                day_button = ft.ElevatedButton(
+                    str(day.day),
+                    width=40,
+                    height=40,
+                    on_click=lambda e, d=day: show_events_for_date(d),
+                    disabled=not is_current_month,
+                    style=ft.ButtonStyle(
+                        bgcolor=ft.Colors.BLUE_200 if has_event else (ft.Colors.GREY_200 if is_current_month else None),
+                        color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK
+                    )
+                )
+                week_row.controls.append(day_button)
+            calendar_grid.append(week_row)
+
+        output_box.controls.append(ft.Column(calendar_grid))
+        output_box.controls.append(selected_date_text)
+        output_box.controls.append(events_column)
+
     def render_event_card(event):
         summary_text = ft.Text(event.get("summary", ""), size=16, weight="bold", expand=True,
                                color=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK87)
+        
+        # Basic event details
         details = (
             f"🎪 {tr('Venue')}: {event.get('venue', 'Unknown')}\n"
             f"📅 {tr('Date')}: {event.get('date', 'Unknown')}\n"
             f"⏰ {tr('Time')}: {event.get('time', 'Unknown')}"
         )
+        
+        # Add weather information if available
+        weather_info = ""
+        if event.get('weather'):
+            weather = event['weather']
+            weather_info = f"\n🌤️ {tr('Weather')}: {weather['temperature']}°C, {weather['description']}"
+            details += weather_info
+        
         detail_text = ft.Text(details, expand=True, selectable=True,
                               color=ft.Colors.WHITE70 if page.theme_mode == ft.ThemeMode.DARK else ft.Colors.BLACK54)
 
@@ -263,21 +406,77 @@ def main(page: ft.Page):
             selectable=True
         )
 
+        countdown_text = ft.Text("", size=14, color=ft.Colors.RED_400)
+
+        event_datetime = datetime.combine(event['event_date'], datetime.min.time())
+        raw_time = event.get('raw_time', '')
+        try:
+            time_obj = datetime.strptime(raw_time, "%H:%M:%S") if len(raw_time) > 5 else datetime.strptime(raw_time, "%H:%M")
+            event_datetime = event_datetime.replace(hour=time_obj.hour, minute=time_obj.minute, second=time_obj.second)
+        except:
+            pass
+
+        delta = event_datetime - datetime.now()
+        if timedelta(0) < delta <= timedelta(days=2):
+            countdown_text.value = f"⏳ Starts in: {format_countdown(delta)}"
+
         image = ft.Image(src=event.get("image_url", ""), width=180, height=100, border_radius=8) if event.get("image_url") else None
 
-        text_column = ft.Column([summary_text, detail_text, ticket_link], expand=True)
+        # Third-party service buttons - Always show buttons regardless of URL availability
+        service_buttons = ft.Row([
+            ft.ElevatedButton(
+                text=f"🗺️ {tr('Map')}",
+                on_click=lambda e, url=event.get("maps_url", ""): page.launch_url(url) if url else None,
+                style=ft.ButtonStyle(
+                    bgcolor=ft.Colors.GREEN_400,
+                    color=ft.Colors.WHITE
+                ),
+                disabled=not event.get("maps_url", "")
+            ),
+            ft.ElevatedButton(
+                text=f"🚗 {tr('Uber')}",
+                on_click=lambda e, url=event.get("uber_url", ""): page.launch_url(url) if url else None,
+                style=ft.ButtonStyle(
+                    bgcolor=ft.Colors.BLACK,
+                    color=ft.Colors.WHITE
+                ),
+                disabled=not event.get("uber_url", "")
+            ),
+            ft.ElevatedButton(
+                text=f"🚕 {tr('Lyft')}",
+                on_click=lambda e, url=event.get("lyft_url", ""): page.launch_url(url) if url else None,
+                style=ft.ButtonStyle(
+                    bgcolor=ft.Colors.PINK_400,
+                    color=ft.Colors.WHITE
+                ),
+                disabled=not event.get("lyft_url", "")
+            )
+        ], spacing=10, wrap=True)
+
+        # Add a separator line before service buttons for better visibility
+        separator = ft.Divider(height=1, color=ft.Colors.GREY_400)
+        
+        text_column = ft.Column([
+            summary_text, 
+            detail_text, 
+            ticket_link, 
+            countdown_text,
+            separator,
+            service_buttons
+        ], expand=True, spacing=10)
 
         return ft.Container(
             content=ft.Row([image if image else ft.Container(), text_column], spacing=20),
-            padding=12,
+            padding=16,
             border_radius=12,
-            bgcolor=ft.Colors.BLUE_GREY_50 if page.theme_mode == ft.ThemeMode.LIGHT else ft.Colors.BLUE_GREY_800,
+            bgcolor=ft.Colors.WHITE if page.theme_mode == ft.ThemeMode.LIGHT else ft.Colors.BLUE_GREY_800,
+            border=ft.border.all(1, ft.Colors.LIGHT_BLUE_200) if page.theme_mode == ft.ThemeMode.LIGHT else None,
             shadow=ft.BoxShadow(blur_radius=8, color="#00000022")
         )
 
     def render_pagination():
         pagination_row.controls.clear()
-        total_pages = (len(last_results) + events_per_page - 1) // events_per_page
+        total_pages = max(1, (len(last_results) + events_per_page - 1) // events_per_page)
         for i in range(1, total_pages + 1):
             style = ft.ButtonStyle(bgcolor="#444444" if page.theme_mode == ft.ThemeMode.DARK else '#e0e0e0') if i == current_page else None
             pagination_row.controls.append(ft.TextButton(str(i), on_click=lambda e, p=i: change_page(p), style=style))
@@ -289,6 +488,7 @@ def main(page: ft.Page):
 
     def toggle_theme():
         page.theme_mode = ft.ThemeMode.DARK if dark_mode_switch.value else ft.ThemeMode.LIGHT
+        set_background_color()
         refresh_output()
         page.update()
 
@@ -335,5 +535,4 @@ def main(page: ft.Page):
         last_results.extend(fetch_all_events(user_city, category_dropdown.value))
         refresh_output()
 
-
-ft.app(target=main)
+ft.app(target=main, view=ft.WEB_BROWSER)
