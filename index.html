@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eventure - Web Edition</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f8ff;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 960px;
+      margin: auto;
+    }
+    h1 {
+      color: #0077cc;
+    }
+    label, select, input, button {
+      margin: 5px;
+    }
+    .event-card {
+      background: #ffffff;
+      border: 1px solid #a7d4f3;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 10px 0;
+      box-shadow: 0px 2px 8px #ccc;
+    }
+    .event-title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .event-details {
+      margin-top: 10px;
+    }
+    .service-buttons button {
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Eventure</h1>
+  <div>
+    <label for="city">City:</label>
+    <input type="text" id="city" placeholder="Enter city">
+    <label for="category">Category:</label>
+    <select id="category">
+      <option>All</option>
+      <option>Music</option>
+      <option>Sports</option>
+      <option>Arts & Theater</option>
+      <option>Film</option>
+      <option>Miscellaneous</option>
+    </select>
+    <button onclick="searchEvents()">Search</button>
+  </div>
+  <div id="results"></div>
+</div>
+<script>
+  async function searchEvents() {
+    const city = document.getElementById('city').value;
+    const category = document.getElementById('category').value;
+    const apiKey = 'qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
+    const classification = category === 'All' ? '' : `&classificationName=${encodeURIComponent(category)}`;
+    const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=10${classification}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '';
+    if (!data._embedded || !data._embedded.events) {
+      resultsDiv.innerHTML = '<p>No events found.</p>';
+      return;
+    }
+    for (const e of data._embedded.events) {
+      const name = e.name;
+      const venue = e._embedded.venues[0].name;
+      const date = e.dates.start.localDate;
+      const time = e.dates.start.localTime || 'TBA';
+      const url = e.url;
+      const image = e.images[0]?.url || '';
+      const card = document.createElement('div');
+      card.className = 'event-card';
+      card.innerHTML = `
+        <div class="event-title">${name}</div>
+        <div class="event-details">
+          <p><strong>Venue:</strong> ${venue}</p>
+          <p><strong>Date:</strong> ${date}</p>
+          <p><strong>Time:</strong> ${time}</p>
+          <a href="${url}" target="_blank">🎟️ Tickets</a>
+        </div>
+        <div class="service-buttons">
+          <button onclick="openMap('${venue}', '${city}')">🗺️ Map</button>
+          <button onclick="openUber('${venue}', '${city}')">🚗 Uber</button>
+          <button onclick="openLyft('${venue}', '${city}')">🚕 Lyft</button>
+        </div>
+      `;
+      resultsDiv.appendChild(card);
+    }
+  }
+
+  function openMap(venue, city) {
+    const query = encodeURIComponent(`${venue}, ${city}`);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
+  }
+  function openUber(venue, city) {
+    const query = encodeURIComponent(`${venue}, ${city}`);
+    window.open(`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${query}`, '_blank');
+  }
+  function openLyft(venue, city) {
+    const query = encodeURIComponent(`${venue}, ${city}`);
+    window.open(`https://lyft.com/ride?destination[address]=${query}`, '_blank');
+  }
+</script>
+</body>
+</html>
