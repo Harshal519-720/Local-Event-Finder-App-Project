@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Eventure</title>
   <style>
@@ -184,34 +184,77 @@
 <body>
   <div class="dark-toggle">
     <label>
-      <input type="checkbox" id="darkToggle" onchange="toggleDark()" />
-      🌙 Dark Mode
+      🌐
+      <select id="langSelect" onchange="setLanguage()">
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+      </select> |
+      <input type="checkbox" id="darkToggle" onchange="toggleDark()" /> 🌙
     </label>
   </div>
 
   <div class="container">
-    <h1>Eventure</h1>
+    <h1 id="heading">Eventure</h1>
     <div class="search-bar">
-      <label for="city">City:</label>
+      <label for="city" id="labelCity">City:</label>
       <input type="text" id="city" placeholder="Enter city"/>
-      <label for="category">Category:</label>
+      <label for="category" id="labelCategory">Category:</label>
       <select id="category">
-        <option>All</option>
-        <option>Music</option>
-        <option>Sports</option>
-        <option>Arts & Theater</option>
-        <option>Film</option>
-        <option>Miscellaneous</option>
+        <option value="All">All</option>
+        <option value="Music">Music</option>
+        <option value="Sports">Sports</option>
+        <option value="Arts & Theater">Arts & Theater</option>
+        <option value="Film">Film</option>
+        <option value="Miscellaneous">Miscellaneous</option>
       </select>
-      <button onclick="searchEvents()">Search</button>
-      <button onclick="toggleCalendar()">📅 View Calendar</button>
+      <button onclick="searchEvents()" id="btnSearch">Search</button>
+      <button onclick="toggleCalendar()" id="btnCalendar">📅 View Calendar</button>
     </div>
-
     <div id="calendar" style="display:none;"></div>
     <div id="results"></div>
   </div>
 
   <script>
+    const langData = {
+      en: {
+        heading: "Eventure", city: "City:", category: "Category:",
+        All: "All", Music: "Music", Sports: "Sports", "Arts & Theater": "Arts & Theater",
+        Film: "Film", Miscellaneous: "Miscellaneous",
+        Search: "Search", "📅 View Calendar": "📅 View Calendar", "🌙": "🌙",
+        "No events on": "No events on", placeholder: "Enter city",
+      },
+      es: {
+        heading: "Eventure", city: "Ciudad:", category: "Categoría:",
+        All: "Todas", Music: "Música", Sports: "Deportes", "Arts & Theater": "Arte & Teatro",
+        Film: "Cine", Miscellaneous: "Misceláneo",
+        Search: "Buscar", "📅 View Calendar": "📅 Ver calendario", "🌙": "🌙",
+        "No events on": "No hay eventos el", placeholder: "Introduce ciudad",
+      },
+      fr: {
+        heading: "Eventure", city: "Ville :", category: "Catégorie :",
+        All: "Toutes", Music: "Musique", Sports: "Sport", "Arts & Theater": "Arts & Théâtre",
+        Film: "Cinéma", Miscellaneous: "Divers",
+        Search: "Rechercher", "📅 View Calendar": "📅 Voir calendrier", "🌙": "🌙",
+        "No events on": "Aucun événement le", placeholder: "Entrez ville",
+      }
+    };
+
+    let currentLang = 'en';
+    function setLanguage() {
+      currentLang = document.getElementById('langSelect').value;
+      const t = langData[currentLang];
+      document.getElementById('heading').textContent = t.heading;
+      document.getElementById('labelCity').textContent = t.city;
+      document.getElementById('city').placeholder = t.placeholder;
+      document.getElementById('labelCategory').textContent = t.category;
+      Array.from(document.getElementById('category').options).forEach(opt => {
+        opt.textContent = t[opt.value] || opt.value;
+      });
+      document.getElementById('btnSearch').textContent = t.Search;
+      document.getElementById('btnCalendar').textContent = t["📅 View Calendar"];
+    }
+
     const apiKey = 'qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
     let allEvents = [];
     let currentPage = 1;
@@ -280,9 +323,7 @@
       for (let i = 1; i <= totalPages; i++) {
         const btn = document.createElement('button');
         btn.textContent = i;
-        if (i === currentPage) {
-          btn.disabled = true;
-        }
+        if (i === currentPage) btn.disabled = true;
         btn.onclick = () => {
           currentPage = i;
           renderPage();
@@ -305,35 +346,28 @@
       const month = now.getMonth();
       const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-
       let html = `<h3 style="text-align:center">${now.toLocaleString('default', { month: 'long' })} ${year}</h3>`;
       html += `<div class="calendar-grid">`;
-
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       dayNames.forEach(d => html += `<div><strong>${d}</strong></div>`);
-
       for (let i = 0; i < firstDay; i++) html += `<div></div>`;
-
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         html += `<div onclick="filterByDate('${dateStr}')">${day}</div>`;
       }
-
       html += `</div>`;
       document.getElementById('calendar').innerHTML = html;
     }
 
     function filterByDate(dateStr) {
+      const t = langData[currentLang];
       const resultsDiv = document.getElementById('results');
       resultsDiv.innerHTML = '';
-
       const filtered = allEvents.filter(e => e.dates.start.localDate === dateStr);
-
-      if (filtered.length === 0) {
-        resultsDiv.innerHTML = `<p style="text-align:center;">No events on ${dateStr}</p>`;
+      if (!filtered.length) {
+        resultsDiv.innerHTML = `<p style="text-align:center;">${t["No events on"]} ${dateStr}</p>`;
         return;
       }
-
       for (const e of filtered) {
         const name = e.name;
         const venue = e._embedded.venues[0].name;
@@ -342,7 +376,6 @@
         const time = e.dates.start.localTime || 'TBA';
         const url = e.url;
         const img = e.images?.[0]?.url || '';
-
         const card = document.createElement('div');
         card.className = 'event-card';
         card.innerHTML = `
@@ -380,6 +413,9 @@
       const query = encodeURIComponent(`${venue}, ${city}`);
       window.open(`https://lyft.com/ride?destination[address]=${query}`, '_blank');
     }
+
+    // Initialize language on load
+    setLanguage();
   </script>
 </body>
 </html>
