@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+html_code = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -81,8 +81,10 @@
 
     .event-card img {
       width: 100%;
-      border-radius: 8px;
-      margin-bottom: 0.75rem;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: 6px;
+      margin-bottom: 10px;
     }
 
     .event-title {
@@ -192,6 +194,7 @@
 
     <div id="calendar" style="display:none;"></div>
     <div id="results"></div>
+    <div id="event-page" style="display:none;"></div>
   </div>
 
   <script>
@@ -361,4 +364,9 @@
     }
   </script>
 </body>
-</html>
+</html>"""
+
+with open("/mnt/data/index-with-images.html", "w", encoding="utf-8") as f:
+    f.write(html_code)
+
+"/mnt/data/index-with-images.html"
