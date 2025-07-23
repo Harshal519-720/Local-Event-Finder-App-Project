@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,13 +12,24 @@
       --primary-color: #0077cc;
       --border-color: #a7d4f3;
       --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      --text-color: #000000;
+    }
+
+    body.dark {
+      --bg-color: #121212;
+      --card-color: #1e1e1e;
+      --primary-color: #4da8ff;
+      --border-color: #333333;
+      --text-color: #ffffff;
     }
 
     body {
       margin: 0;
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
       background-color: var(--bg-color);
+      color: var(--text-color);
       padding: 1rem;
+      transition: background-color 0.3s, color 0.3s;
     }
 
     .container {
@@ -54,6 +66,11 @@
       cursor: pointer;
     }
 
+    .dark-toggle {
+      text-align: right;
+      padding: 0.5rem 1rem;
+    }
+
     .event-card {
       background-color: var(--card-color);
       border: 1px solid var(--border-color);
@@ -66,12 +83,12 @@
     .event-title {
       font-size: 1.25rem;
       font-weight: bold;
-      color: #222;
+      color: var(--text-color);
     }
 
     .event-details {
       margin-top: 0.5rem;
-      color: #444;
+      color: var(--text-color);
     }
 
     .event-details p {
@@ -84,7 +101,7 @@
 
     .buttons button {
       margin-right: 0.5rem;
-      background-color: #0077cc;
+      background-color: var(--primary-color);
     }
 
     .pagination {
@@ -123,6 +140,13 @@
   </style>
 </head>
 <body>
+  <div class="dark-toggle">
+    <label>
+      <input type="checkbox" id="darkToggle" onchange="toggleDark()" />
+      🌙 Dark Mode
+    </label>
+  </div>
+
   <div class="container">
     <h1>Eventure</h1>
     <div class="search-bar">
@@ -149,6 +173,10 @@
     let allEvents = [];
     let currentPage = 1;
     const perPage = 12;
+
+    function toggleDark() {
+      document.body.classList.toggle("dark");
+    }
 
     async function searchEvents() {
       const city = document.getElementById('city').value;
