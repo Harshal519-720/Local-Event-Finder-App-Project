@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -133,26 +132,32 @@
     </div>
 
     <div id="results"></div>
+    <div id="event-page" style="display:none;"></div>
   </div>
 
   <script>
+    const apiKey = 'qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
+    let latestResults = [];
+
     async function searchEvents() {
       const city = document.getElementById('city').value;
       const category = document.getElementById('category').value;
-      const apiKey = 'qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
       const classification = category === 'All' ? '' : `&classificationName=${encodeURIComponent(category)}`;
       const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=10${classification}`;
       const response = await fetch(url);
       const data = await response.json();
       const resultsDiv = document.getElementById('results');
       resultsDiv.innerHTML = '';
+      latestResults = [];
 
       if (!data._embedded || !data._embedded.events) {
         resultsDiv.innerHTML = '<p>No events found.</p>';
         return;
       }
 
-      for (const e of data._embedded.events) {
+      latestResults = data._embedded.events;
+
+      for (const e of latestResults) {
         const name = e.name;
         const venue = e._embedded.venues[0].name;
         const date = e.dates.start.localDate;
@@ -168,6 +173,7 @@
             <p><strong>Date:</strong> ${date}</p>
             <p><strong>Time:</strong> ${time}</p>
             <p><a href="${url}" target="_blank">🎟️ Tickets</a></p>
+            <p><a href="#event/${e.id}">View Details</a></p>
           </div>
           <div class="buttons">
             <button onclick="openMap('${venue}', '${city}')">🗺️ Map</button>
@@ -193,6 +199,57 @@
       const query = encodeURIComponent(`${venue}, ${city}`);
       window.open(`https://lyft.com/ride?destination[address]=${query}`, '_blank');
     }
+
+    window.addEventListener('hashchange', handleHash);
+
+    async function handleHash() {
+      const hash = window.location.hash;
+      if (hash.startsWith('#event/')) {
+        const eventId = hash.split('/')[1];
+        showEventDetails(eventId);
+      } else {
+        document.getElementById('event-page').style.display = 'none';
+        document.getElementById('results').style.display = 'block';
+      }
+    }
+
+    async function showEventDetails(id) {
+      const url = `https://app.ticketmaster.com/discovery/v2/events/${id}.json?apikey=${apiKey}`;
+      const response = await fetch(url);
+      const e = await response.json();
+
+      const name = e.name;
+      const venue = e._embedded.venues[0].name;
+      const city = e._embedded.venues[0].city.name;
+      const date = e.dates.start.localDate;
+      const time = e.dates.start.localTime || 'TBA';
+      const eventUrl = e.url;
+
+      const detailsHTML = `
+        <div class="event-card">
+          <div class="event-title">${name}</div>
+          <div class="event-details">
+            <p><strong>Venue:</strong> ${venue}</p>
+            <p><strong>Date:</strong> ${date}</p>
+            <p><strong>Time:</strong> ${time}</p>
+            <p><a href="${eventUrl}" target="_blank">🎟️ Tickets</a></p>
+          </div>
+          <div class="buttons">
+            <button onclick="openMap('${venue}', '${city}')">🗺️ Map</button>
+            <button onclick="openUber('${venue}', '${city}')">🚗 Uber</button>
+            <button onclick="openLyft('${venue}', '${city}')">🚕 Lyft</button>
+            <button onclick="window.location.hash = ''">⬅️ Back to Events</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('results').style.display = 'none';
+      const eventPage = document.getElementById('event-page');
+      eventPage.innerHTML = detailsHTML;
+      eventPage.style.display = 'block';
+    }
+
+    handleHash(); // Handle initial load
   </script>
 </body>
 </html>
