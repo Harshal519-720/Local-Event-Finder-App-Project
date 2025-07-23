@@ -79,6 +79,12 @@
       margin: 1rem 0;
     }
 
+    .event-card img {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+    }
+
     .event-title {
       font-size: 1.25rem;
       font-weight: bold;
@@ -186,7 +192,6 @@
 
     <div id="calendar" style="display:none;"></div>
     <div id="results"></div>
-    <div id="event-page" style="display:none;"></div>
   </div>
 
   <script>
@@ -224,10 +229,12 @@
         const date = e.dates.start.localDate;
         const time = e.dates.start.localTime || 'TBA';
         const url = e.url;
+        const image = e.images?.[0]?.url || '';
 
         const card = document.createElement('div');
         card.className = 'event-card';
         card.innerHTML = `
+          ${image ? `<img src="${image}" alt="${name}" />` : ''}
           <div class="event-title">${name}</div>
           <div class="event-details">
             <p><strong>Venue:</strong> ${venue}</p>
@@ -315,10 +322,12 @@
         const date = e.dates.start.localDate;
         const time = e.dates.start.localTime || 'TBA';
         const url = e.url;
+        const image = e.images?.[0]?.url || '';
 
         const card = document.createElement('div');
         card.className = 'event-card';
         card.innerHTML = `
+          ${image ? `<img src="${image}" alt="${name}" />` : ''}
           <div class="event-title">${name}</div>
           <div class="event-details">
             <p><strong>Venue:</strong> ${venue}</p>
