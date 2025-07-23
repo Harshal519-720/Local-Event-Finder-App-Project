@@ -87,6 +87,15 @@
       background-color: #0077cc;
     }
 
+    .pagination {
+      text-align: center;
+      margin: 2rem 0;
+    }
+
+    .pagination button {
+      margin: 0 0.25rem;
+    }
+
     a {
       color: #cc0077;
       font-weight: bold;
@@ -137,29 +146,32 @@
 
   <script>
     const apiKey = 'qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
-    let latestResults = [];
+    let allEvents = [];
+    let currentPage = 1;
+    const perPage = 12;
 
     async function searchEvents() {
       const city = document.getElementById('city').value;
       const category = document.getElementById('category').value;
       const classification = category === 'All' ? '' : `&classificationName=${encodeURIComponent(category)}`;
-      const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=10${classification}`;
+      const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=200${classification}`;
       const response = await fetch(url);
       const data = await response.json();
+      allEvents = data._embedded?.events || [];
+      currentPage = 1;
+      renderPage();
+    }
+
+    function renderPage() {
       const resultsDiv = document.getElementById('results');
       resultsDiv.innerHTML = '';
-      latestResults = [];
+      const start = (currentPage - 1) * perPage;
+      const pageEvents = allEvents.slice(start, start + perPage);
 
-      if (!data._embedded || !data._embedded.events) {
-        resultsDiv.innerHTML = '<p>No events found.</p>';
-        return;
-      }
-
-      latestResults = data._embedded.events;
-
-      for (const e of latestResults) {
+      for (const e of pageEvents) {
         const name = e.name;
         const venue = e._embedded.venues[0].name;
+        const city = e._embedded.venues[0].city.name;
         const date = e.dates.start.localDate;
         const time = e.dates.start.localTime || 'TBA';
         const url = e.url;
@@ -173,7 +185,6 @@
             <p><strong>Date:</strong> ${date}</p>
             <p><strong>Time:</strong> ${time}</p>
             <p><a href="${url}" target="_blank">🎟️ Tickets</a></p>
-            <p><a href="#event/${e.id}">View Details</a></p>
           </div>
           <div class="buttons">
             <button onclick="openMap('${venue}', '${city}')">🗺️ Map</button>
@@ -183,6 +194,28 @@
         `;
         resultsDiv.appendChild(card);
       }
+
+      renderPagination(Math.ceil(allEvents.length / perPage));
+    }
+
+    function renderPagination(totalPages) {
+      const paginationDiv = document.createElement('div');
+      paginationDiv.className = 'pagination';
+
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        if (i === currentPage) {
+          btn.disabled = true;
+        }
+        btn.onclick = () => {
+          currentPage = i;
+          renderPage();
+        };
+        paginationDiv.appendChild(btn);
+      }
+
+      document.getElementById('results').appendChild(paginationDiv);
     }
 
     function openMap(venue, city) {
@@ -199,57 +232,6 @@
       const query = encodeURIComponent(`${venue}, ${city}`);
       window.open(`https://lyft.com/ride?destination[address]=${query}`, '_blank');
     }
-
-    window.addEventListener('hashchange', handleHash);
-
-    async function handleHash() {
-      const hash = window.location.hash;
-      if (hash.startsWith('#event/')) {
-        const eventId = hash.split('/')[1];
-        showEventDetails(eventId);
-      } else {
-        document.getElementById('event-page').style.display = 'none';
-        document.getElementById('results').style.display = 'block';
-      }
-    }
-
-    async function showEventDetails(id) {
-      const url = `https://app.ticketmaster.com/discovery/v2/events/${id}.json?apikey=${apiKey}`;
-      const response = await fetch(url);
-      const e = await response.json();
-
-      const name = e.name;
-      const venue = e._embedded.venues[0].name;
-      const city = e._embedded.venues[0].city.name;
-      const date = e.dates.start.localDate;
-      const time = e.dates.start.localTime || 'TBA';
-      const eventUrl = e.url;
-
-      const detailsHTML = `
-        <div class="event-card">
-          <div class="event-title">${name}</div>
-          <div class="event-details">
-            <p><strong>Venue:</strong> ${venue}</p>
-            <p><strong>Date:</strong> ${date}</p>
-            <p><strong>Time:</strong> ${time}</p>
-            <p><a href="${eventUrl}" target="_blank">🎟️ Tickets</a></p>
-          </div>
-          <div class="buttons">
-            <button onclick="openMap('${venue}', '${city}')">🗺️ Map</button>
-            <button onclick="openUber('${venue}', '${city}')">🚗 Uber</button>
-            <button onclick="openLyft('${venue}', '${city}')">🚕 Lyft</button>
-            <button onclick="window.location.hash = ''">⬅️ Back to Events</button>
-          </div>
-        </div>
-      `;
-
-      document.getElementById('results').style.display = 'none';
-      const eventPage = document.getElementById('event-page');
-      eventPage.innerHTML = detailsHTML;
-      eventPage.style.display = 'block';
-    }
-
-    handleHash(); // Handle initial load
   </script>
 </body>
 </html>
