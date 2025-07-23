@@ -1,4 +1,4 @@
-html_code = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -77,14 +77,20 @@ html_code = """<!DOCTYPE html>
       box-shadow: var(--shadow);
       padding: 1rem;
       margin: 1rem 0;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
     }
 
-    .event-card img {
-      width: 100%;
-      max-height: 200px;
+    .event-img {
+      width: 160px;
+      height: auto;
+      border-radius: 8px;
       object-fit: cover;
-      border-radius: 6px;
-      margin-bottom: 10px;
+    }
+
+    .event-info {
+      flex: 1;
     }
 
     .event-title {
@@ -120,26 +126,6 @@ html_code = """<!DOCTYPE html>
       margin: 0 0.25rem;
     }
 
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      text-align: center;
-      gap: 0.25rem;
-      margin-top: 1rem;
-    }
-
-    .calendar-grid div {
-      padding: 0.75rem;
-      border-radius: 6px;
-      background-color: var(--card-color);
-      box-shadow: var(--shadow);
-      cursor: pointer;
-    }
-
-    .calendar-grid div:hover {
-      background-color: var(--border-color);
-    }
-
     a {
       color: #cc0077;
       font-weight: bold;
@@ -147,17 +133,19 @@ html_code = """<!DOCTYPE html>
     }
 
     @media (max-width: 600px) {
-      .search-bar {
+      .event-card {
         flex-direction: column;
         align-items: center;
       }
 
-      .event-title {
-        font-size: 1.1rem;
+      .event-img {
+        width: 100%;
+        max-width: 300px;
       }
 
       .buttons {
         flex-direction: column;
+        align-items: center;
       }
 
       .buttons button {
@@ -189,12 +177,9 @@ html_code = """<!DOCTYPE html>
         <option>Miscellaneous</option>
       </select>
       <button onclick="searchEvents()">Search</button>
-      <button onclick="toggleCalendar()">📅 View Calendar</button>
     </div>
 
-    <div id="calendar" style="display:none;"></div>
     <div id="results"></div>
-    <div id="event-page" style="display:none;"></div>
   </div>
 
   <script>
@@ -237,18 +222,20 @@ html_code = """<!DOCTYPE html>
         const card = document.createElement('div');
         card.className = 'event-card';
         card.innerHTML = `
-          ${image ? `<img src="${image}" alt="${name}" />` : ''}
-          <div class="event-title">${name}</div>
-          <div class="event-details">
-            <p><strong>Venue:</strong> ${venue}</p>
-            <p><strong>Date:</strong> ${date}</p>
-            <p><strong>Time:</strong> ${time}</p>
-            <p><a href="${url}" target="_blank">🎟️ Tickets</a></p>
-          </div>
-          <div class="buttons">
-            <button onclick="openMap('${venue}', '${city}')">🗺️ Map</button>
-            <button onclick="openUber('${venue}', '${city}')">🚗 Uber</button>
-            <button onclick="openLyft('${venue}', '${city}')">🚕 Lyft</button>
+          <img class="event-img" src="${image}" alt="Event Image">
+          <div class="event-info">
+            <div class="event-title">${name}</div>
+            <div class="event-details">
+              <p><strong>Venue:</strong> ${venue}</p>
+              <p><strong>Date:</strong> ${date}</p>
+              <p><strong>Time:</strong> ${time}</p>
+              <p><a href="${url}" target="_blank">🎟️ Tickets</a></p>
+            </div>
+            <div class="buttons">
+              <button onclick="openMap('${venue}', '${city}')">🗺️ Map</button>
+              <button onclick="openUber('${venue}', '${city}')">🚗 Uber</button>
+              <button onclick="openLyft('${venue}', '${city}')">🚕 Lyft</button>
+            </div>
           </div>
         `;
         resultsDiv.appendChild(card);
@@ -277,77 +264,6 @@ html_code = """<!DOCTYPE html>
       document.getElementById('results').appendChild(paginationDiv);
     }
 
-    function toggleCalendar() {
-      const calDiv = document.getElementById('calendar');
-      calDiv.style.display = calDiv.style.display === 'none' ? 'block' : 'none';
-      if (calDiv.innerHTML === '') renderCalendar();
-    }
-
-    function renderCalendar() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-      let html = `<h3 style="text-align:center">${now.toLocaleString('default', { month: 'long' })} ${year}</h3>`;
-      html += `<div class="calendar-grid">`;
-
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      dayNames.forEach(d => html += `<div><strong>${d}</strong></div>`);
-
-      for (let i = 0; i < firstDay; i++) html += `<div></div>`;
-
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        html += `<div onclick="filterByDate('${dateStr}')">${day}</div>`;
-      }
-
-      html += `</div>`;
-      document.getElementById('calendar').innerHTML = html;
-    }
-
-    function filterByDate(dateStr) {
-      const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = '';
-
-      const filtered = allEvents.filter(e => e.dates.start.localDate === dateStr);
-
-      if (filtered.length === 0) {
-        resultsDiv.innerHTML = `<p style="text-align:center;">No events on ${dateStr}</p>`;
-        return;
-      }
-
-      for (const e of filtered) {
-        const name = e.name;
-        const venue = e._embedded.venues[0].name;
-        const city = e._embedded.venues[0].city.name;
-        const date = e.dates.start.localDate;
-        const time = e.dates.start.localTime || 'TBA';
-        const url = e.url;
-        const image = e.images?.[0]?.url || '';
-
-        const card = document.createElement('div');
-        card.className = 'event-card';
-        card.innerHTML = `
-          ${image ? `<img src="${image}" alt="${name}" />` : ''}
-          <div class="event-title">${name}</div>
-          <div class="event-details">
-            <p><strong>Venue:</strong> ${venue}</p>
-            <p><strong>Date:</strong> ${date}</p>
-            <p><strong>Time:</strong> ${time}</p>
-            <p><a href="${url}" target="_blank">🎟️ Tickets</a></p>
-          </div>
-          <div class="buttons">
-            <button onclick="openMap('${venue}', '${city}')">🗺️ Map</button>
-            <button onclick="openUber('${venue}', '${city}')">🚗 Uber</button>
-            <button onclick="openLyft('${venue}', '${city}')">🚕 Lyft</button>
-          </div>
-        `;
-        resultsDiv.appendChild(card);
-      }
-    }
-
     function openMap(venue, city) {
       const query = encodeURIComponent(`${venue}, ${city}`);
       window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
@@ -364,9 +280,4 @@ html_code = """<!DOCTYPE html>
     }
   </script>
 </body>
-</html>"""
-
-with open("/mnt/data/index-with-images.html", "w", encoding="utf-8") as f:
-    f.write(html_code)
-
-"/mnt/data/index-with-images.html"
+</html>
