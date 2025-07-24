@@ -4,6 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Eventure</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-color: #f0f8ff;
@@ -37,9 +38,15 @@
     }
 
     h1 {
-      color: var(--primary-color);
-      margin-bottom: 1rem;
+      font-size: 3rem;
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(45deg, #0077cc, #00ccff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
       text-align: center;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+      letter-spacing: 2px;
+      margin-bottom: 1rem;
     }
 
     .search-bar {
@@ -267,8 +274,8 @@
     async function searchEvents() {
       const city = document.getElementById('city').value;
       const category = document.getElementById('category').value;
-      const classification = category === 'All' ? '' : &classificationName=${encodeURIComponent(category)};
-      const url = https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=200${classification};
+      const classification = category === 'All' ? '' : `&classificationName=${encodeURIComponent(category)}`;
+      const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=200${classification}`;
       const response = await fetch(url);
       const data = await response.json();
       allEvents = data._embedded?.events || [];
@@ -293,7 +300,7 @@
 
         const card = document.createElement('div');
         card.className = 'event-card';
-        card.innerHTML = 
+        card.innerHTML = `
           <img src="${img}" alt="${name}" class="event-image" />
           <div class="event-content">
             <div class="event-title">${name}</div>
@@ -309,7 +316,7 @@
               <button onclick="openLyft('${venue}', '${city}')">🚕 Lyft</button>
             </div>
           </div>
-        ;
+        `;
         resultsDiv.appendChild(card);
       }
 
@@ -346,16 +353,16 @@
       const month = now.getMonth();
       const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      let html = <h3 style="text-align:center">${now.toLocaleString('default', { month: 'long' })} ${year}</h3>;
-      html += <div class="calendar-grid">;
+      let html = `<h3 style="text-align:center">${now.toLocaleString('default', { month: 'long' })} ${year}</h3>`;
+      html += `<div class="calendar-grid">`;
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      dayNames.forEach(d => html += <div><strong>${d}</strong></div>);
-      for (let i = 0; i < firstDay; i++) html += <div></div>;
+      dayNames.forEach(d => html += `<div><strong>${d}</strong></div>`);
+      for (let i = 0; i < firstDay; i++) html += `<div></div>`;
       for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = ${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')};
-        html += <div onclick="filterByDate('${dateStr}')">${day}</div>;
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        html += `<div onclick="filterByDate('${dateStr}')">${day}</div>`;
       }
-      html += </div>;
+      html += `</div>`;
       document.getElementById('calendar').innerHTML = html;
     }
 
@@ -365,7 +372,7 @@
       resultsDiv.innerHTML = '';
       const filtered = allEvents.filter(e => e.dates.start.localDate === dateStr);
       if (!filtered.length) {
-        resultsDiv.innerHTML = <p style="text-align:center;">${t["No events on"]} ${dateStr}</p>;
+        resultsDiv.innerHTML = `<p style="text-align:center;">${t["No events on"]} ${dateStr}</p>`;
         return;
       }
       for (const e of filtered) {
@@ -378,7 +385,7 @@
         const img = e.images?.[0]?.url || '';
         const card = document.createElement('div');
         card.className = 'event-card';
-        card.innerHTML = 
+        card.innerHTML = `
           <img src="${img}" alt="${name}" class="event-image" />
           <div class="event-content">
             <div class="event-title">${name}</div>
@@ -394,27 +401,26 @@
               <button onclick="openLyft('${venue}', '${city}')">🚕 Lyft</button>
             </div>
           </div>
-        ;
+        `;
         resultsDiv.appendChild(card);
       }
     }
 
     function openMap(venue, city) {
-      const query = encodeURIComponent(${venue}, ${city});
-      window.open(https://www.google.com/maps/search/?api=1&query=${query}, '_blank');
+      const query = encodeURIComponent(`${venue}, ${city}`);
+      window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, '_blank');
     }
 
     function openUber(venue, city) {
-      const query = encodeURIComponent(${venue}, ${city});
-      window.open(https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${query}, '_blank');
+      const query = encodeURIComponent(`${venue}, ${city}`);
+      window.open(`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${query}`, '_blank');
     }
 
     function openLyft(venue, city) {
-      const query = encodeURIComponent(${venue}, ${city});
-      window.open(https://lyft.com/ride?destination[address]=${query}, '_blank');
+      const query = encodeURIComponent(`${venue}, ${city}`);
+      window.open(`https://lyft.com/ride?destination[address]=${query}`, '_blank');
     }
 
-    // Initialize language on load
     setLanguage();
   </script>
 </body>
