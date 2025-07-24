@@ -39,12 +39,11 @@
 
     .logo-container {
       text-align: center;
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
     }
 
-    .logo-light,
-    .logo-dark {
-      height: 80px;
+    .logo {
+      height: 100px;
       max-width: 100%;
     }
 
@@ -62,18 +61,6 @@
 
     body.dark .logo-dark {
       display: block;
-    }
-
-    h1 {
-      font-size: 3rem;
-      font-family: 'Orbitron', sans-serif;
-      background: linear-gradient(45deg, #0077cc, #00ccff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-align: center;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-      letter-spacing: 2px;
-      margin-bottom: 1rem;
     }
 
     .search-bar {
@@ -230,10 +217,10 @@
 
   <div class="container">
     <div class="logo-container">
-      <img src="https://github.com/Harshal519-720/Local-Event-Finder-App-Project/blob/main/logo-light.png?raw=true" alt="Eventure Logo Light" class="logo-light">
-      <img src="https://github.com/Harshal519-720/Local-Event-Finder-App-Project/blob/main/logo-dark.png?raw=true" alt="Eventure Logo Dark" class="logo-dark">
+      <img src="https://github.com/Harshal519-720/Local-Event-Finder-App-Project/blob/main/logo-light.png?raw=true" alt="Eventure Light Logo" class="logo logo-light">
+      <img src="https://github.com/Harshal519-720/Local-Event-Finder-App-Project/blob/main/logo-dark.png?raw=true" alt="Eventure Dark Logo" class="logo logo-dark">
     </div>
-    <h1 id="heading">Eventure</h1>
+
     <div class="search-bar">
       <label for="city" id="labelCity">City:</label>
       <input type="text" id="city" placeholder="Enter city"/>
@@ -256,21 +243,21 @@
   <script>
     const langData = {
       en: {
-        heading: "Eventure", city: "City:", category: "Category:",
+        city: "City:", category: "Category:",
         All: "All", Music: "Music", Sports: "Sports", "Arts & Theater": "Arts & Theater",
         Film: "Film", Miscellaneous: "Miscellaneous",
         Search: "Search", "📅 View Calendar": "📅 View Calendar", "🌙": "🌙",
         "No events on": "No events on", placeholder: "Enter city",
       },
       es: {
-        heading: "Eventure", city: "Ciudad:", category: "Categoría:",
+        city: "Ciudad:", category: "Categoría:",
         All: "Todas", Music: "Música", Sports: "Deportes", "Arts & Theater": "Arte & Teatro",
         Film: "Cine", Miscellaneous: "Misceláneo",
         Search: "Buscar", "📅 View Calendar": "📅 Ver calendario", "🌙": "🌙",
         "No events on": "No hay eventos el", placeholder: "Introduce ciudad",
       },
       fr: {
-        heading: "Eventure", city: "Ville :", category: "Catégorie :",
+        city: "Ville :", category: "Catégorie :",
         All: "Toutes", Music: "Musique", Sports: "Sport", "Arts & Theater": "Arts & Théâtre",
         Film: "Cinéma", Miscellaneous: "Divers",
         Search: "Rechercher", "📅 View Calendar": "📅 Voir calendrier", "🌙": "🌙",
@@ -282,7 +269,6 @@
     function setLanguage() {
       currentLang = document.getElementById('langSelect').value;
       const t = langData[currentLang];
-      document.getElementById('heading').textContent = t.heading;
       document.getElementById('labelCity').textContent = t.city;
       document.getElementById('city').placeholder = t.placeholder;
       document.getElementById('labelCategory').textContent = t.category;
