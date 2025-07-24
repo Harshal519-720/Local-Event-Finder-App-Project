@@ -37,6 +37,33 @@
       margin: auto;
     }
 
+    .logo-container {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .logo-light,
+    .logo-dark {
+      height: 80px;
+      max-width: 100%;
+    }
+
+    .logo-light {
+      display: block;
+    }
+
+    .logo-dark {
+      display: none;
+    }
+
+    body.dark .logo-light {
+      display: none;
+    }
+
+    body.dark .logo-dark {
+      display: block;
+    }
+
     h1 {
       font-size: 3rem;
       font-family: 'Orbitron', sans-serif;
@@ -202,6 +229,10 @@
   </div>
 
   <div class="container">
+    <div class="logo-container">
+      <img src="https://github.com/Harshal519-720/Local-Event-Finder-App-Project/blob/main/logo-light.png?raw=true" alt="Eventure Logo Light" class="logo-light">
+      <img src="https://github.com/Harshal519-720/Local-Event-Finder-App-Project/blob/main/logo-dark.png?raw=true" alt="Eventure Logo Dark" class="logo-dark">
+    </div>
     <h1 id="heading">Eventure</h1>
     <div class="search-bar">
       <label for="city" id="labelCity">City:</label>
