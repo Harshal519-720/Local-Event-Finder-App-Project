@@ -39,12 +39,12 @@
     .logo-container {
       display: flex;
       justify-content: center;
-      margin-top: 0.5rem
+      margin-top: 0.5rem;
       margin-bottom: 1rem;
     }
 
     .logo {
-      height: 130px;
+      height: 200px;
       max-width: 100%;
     }
 
@@ -85,11 +85,6 @@
       border: none;
       border-radius: 4px;
       cursor: pointer;
-    }
-
-    .dark-toggle {
-      text-align: right;
-      padding: 0.5rem 1rem;
     }
 
     .event-card {
@@ -201,19 +196,57 @@
         height: auto;
       }
     }
+
+    .settings-container {
+      position: absolute;
+      top: 0.5rem;
+      right: 1rem;
+    }
+
+    #settingsMenu {
+      display: none;
+      position: absolute;
+      right: 0;
+      background: var(--card-color);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.5rem;
+      margin-top: 0.5rem;
+      box-shadow: var(--shadow);
+      z-index: 100;
+    }
+
+    #settingsMenu label {
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .settings-container button {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--text-color);
+    }
   </style>
 </head>
 <body>
-  <div class="dark-toggle">
-    <label>
-      🌐
-      <select id="langSelect" onchange="setLanguage()">
-        <option value="en">English</option>
-        <option value="es">Español</option>
-        <option value="fr">Français</option>
-      </select> |
-      <input type="checkbox" id="darkToggle" onchange="toggleDark()" /> 🌙
-    </label>
+  <div class="settings-container">
+    <button id="settingsBtn">⚙️ Settings</button>
+    <div id="settingsMenu" class="settings-menu">
+      <label>
+        🌐 
+        <select id="langSelect" onchange="setLanguage()">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+        </select>
+      </label>
+      <label>
+        <input type="checkbox" id="darkToggle" onchange="toggleDark()" /> 🌙 Dark Mode
+      </label>
+    </div>
   </div>
 
   <div class="container">
@@ -247,21 +280,21 @@
         city: "City:", category: "Category:",
         All: "All", Music: "Music", Sports: "Sports", "Arts & Theater": "Arts & Theater",
         Film: "Film", Miscellaneous: "Miscellaneous",
-        Search: "Search", "📅 View Calendar": "📅 View Calendar", "🌙": "🌙",
+        Search: "Search", "📅 View Calendar": "📅 View Calendar",
         "No events on": "No events on", placeholder: "Enter city",
       },
       es: {
         city: "Ciudad:", category: "Categoría:",
         All: "Todas", Music: "Música", Sports: "Deportes", "Arts & Theater": "Arte & Teatro",
         Film: "Cine", Miscellaneous: "Misceláneo",
-        Search: "Buscar", "📅 View Calendar": "📅 Ver calendario", "🌙": "🌙",
+        Search: "Buscar", "📅 View Calendar": "📅 Ver calendario",
         "No events on": "No hay eventos el", placeholder: "Introduce ciudad",
       },
       fr: {
         city: "Ville :", category: "Catégorie :",
         All: "Toutes", Music: "Musique", Sports: "Sport", "Arts & Theater": "Arts & Théâtre",
         Film: "Cinéma", Miscellaneous: "Divers",
-        Search: "Rechercher", "📅 View Calendar": "📅 Voir calendrier", "🌙": "🌙",
+        Search: "Rechercher", "📅 View Calendar": "📅 Voir calendrier",
         "No events on": "Aucun événement le", placeholder: "Entrez ville",
       }
     };
@@ -289,16 +322,18 @@
       document.body.classList.toggle("dark");
     }
 
-    async function searchEvents() {
+    function searchEvents() {
       const city = document.getElementById('city').value;
       const category = document.getElementById('category').value;
       const classification = category === 'All' ? '' : `&classificationName=${encodeURIComponent(category)}`;
       const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=200${classification}`;
-      const response = await fetch(url);
-      const data = await response.json();
-      allEvents = data._embedded?.events || [];
-      currentPage = 1;
-      renderPage();
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          allEvents = data._embedded?.events || [];
+          currentPage = 1;
+          renderPage();
+        });
     }
 
     function renderPage() {
@@ -306,7 +341,6 @@
       resultsDiv.innerHTML = '';
       const start = (currentPage - 1) * perPage;
       const pageEvents = allEvents.slice(start, start + perPage);
-
       for (const e of pageEvents) {
         const name = e.name;
         const venue = e._embedded.venues[0].name;
@@ -315,7 +349,6 @@
         const time = e.dates.start.localTime || 'TBA';
         const url = e.url;
         const img = e.images?.[0]?.url || '';
-
         const card = document.createElement('div');
         card.className = 'event-card';
         card.innerHTML = `
@@ -337,14 +370,12 @@
         `;
         resultsDiv.appendChild(card);
       }
-
       renderPagination(Math.ceil(allEvents.length / perPage));
     }
 
     function renderPagination(totalPages) {
       const paginationDiv = document.createElement('div');
       paginationDiv.className = 'pagination';
-
       for (let i = 1; i <= totalPages; i++) {
         const btn = document.createElement('button');
         btn.textContent = i;
@@ -355,7 +386,6 @@
         };
         paginationDiv.appendChild(btn);
       }
-
       document.getElementById('results').appendChild(paginationDiv);
     }
 
@@ -438,6 +468,19 @@
       const query = encodeURIComponent(`${venue}, ${city}`);
       window.open(`https://lyft.com/ride?destination[address]=${query}`, '_blank');
     }
+
+    document.getElementById("settingsBtn").addEventListener("click", () => {
+      const menu = document.getElementById("settingsMenu");
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
+    });
+
+    document.addEventListener("click", (e) => {
+      const btn = document.getElementById("settingsBtn");
+      const menu = document.getElementById("settingsMenu");
+      if (!btn.contains(e.target) && !menu.contains(e.target)) {
+        menu.style.display = "none";
+      }
+    });
 
     setLanguage();
   </script>
