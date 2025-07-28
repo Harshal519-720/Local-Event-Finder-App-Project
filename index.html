@@ -143,13 +143,14 @@ function searchEvents(){
       allEvents=data._embedded?.events||[];
       currentPage=1;
       renderPage();
+      renderCalendar();
     });
 }
 function renderPagination(){
   const totalPages=Math.ceil(allEvents.length/perPage);
   const pagDiv=document.createElement('div');
   pagDiv.className='pagination';
-  const addBtn=(label,page)=>{const b=document.createElement('button');b.textContent=label;if(page===currentPage)b.classList.add('active');b.onclick=()=>{currentPage=page;renderPage()};pagDiv.appendChild(b);}
+  const addBtn=(label,page)=>{const b=document.createElement('button');b.textContent=label;if(page===currentPage)b.classList.add('active');b.onclick=()=>{currentPage=page;renderPage()};pagDiv.appendChild(b)}
   if(totalPages<=7){for(let i=1;i<=totalPages;i++)addBtn(i,i);}
   else{
     addBtn(1,1);
@@ -223,10 +224,10 @@ function changeMonth(offset){
   renderCalendar();
 }
 function filterByDate(ds){
+  const filtered=allEvents.filter(e=>e.dates.start.localDate===ds);
   const r=document.getElementById('results');
-  const f=allEvents.filter(e=>e.dates.start.localDate===ds);
-  if(!f.length){r.innerHTML=`<p style="text-align:center;">${langData[currentLang]["No events on"]} ${ds}</p>`;return;}
-  r.innerHTML=f.map(renderEventCard).join('');
+  if(!filtered.length){r.innerHTML=`<p style="text-align:center;">${langData[currentLang]["No events on"]} ${ds}</p>`;return;}
+  r.innerHTML=filtered.map(renderEventCard).join('');
 }
 function openMap(v,c){window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v+', '+c)}`,'_blank')}
 function openUber(v,c){window.open(`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(v+', '+c)}`,'_blank')}
