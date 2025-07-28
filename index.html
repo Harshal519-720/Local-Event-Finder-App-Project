@@ -201,6 +201,8 @@
     const apiKey = 'qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
     let allEvents = [];
     let currentLang = 'en';
+    let currentPage = 1;
+    const perPage = 10;
 
     const langData = {
       en: { city: "City:", category: "Category:", All: "All", Music: "Music", Sports: "Sports", "Arts & Theater": "Arts & Theater", Film: "Film", Miscellaneous: "Miscellaneous", Search: "Search", "📅 View Calendar": "📅 View Calendar", "No events on": "No events on", placeholder: "Enter city" },
@@ -234,14 +236,31 @@
         .then(res => res.json())
         .then(data => {
           allEvents = data._embedded?.events || [];
+          currentPage = 1;
           renderPage();
         });
+    }
+
+    function renderPagination() {
+      const totalPages = Math.ceil(allEvents.length / perPage);
+      const paginationDiv = document.createElement('div');
+      paginationDiv.className = 'pagination';
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        if (i === currentPage) btn.classList.add('active');
+        btn.onclick = () => { currentPage = i; renderPage(); };
+        paginationDiv.appendChild(btn);
+      }
+      document.getElementById('results').appendChild(paginationDiv);
     }
 
     function renderPage() {
       const resultsDiv = document.getElementById('results');
       resultsDiv.innerHTML = '';
-      for (const e of allEvents) {
+      const start = (currentPage - 1) * perPage;
+      const pageEvents = allEvents.slice(start, start + perPage);
+      for (const e of pageEvents) {
         const venue = e._embedded.venues[0];
         resultsDiv.innerHTML += `
           <div class="event-card">
@@ -263,6 +282,7 @@
           </div>
         `;
       }
+      renderPagination();
     }
 
     function toggleCalendar() {
