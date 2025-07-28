@@ -108,9 +108,11 @@
   <div id="results"></div>
 </div>
 <script>
-const apiKey = 'qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
+const apiKey='qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
 let allEvents=[],currentLang='en',currentPage=1;
 const perPage=10;
+let calendarMonth=new Date().getMonth();
+let calendarYear=new Date().getFullYear();
 const langData={en:{city:"City:",category:"Category:",All:"All",Music:"Music",Sports:"Sports","Arts & Theater":"Arts & Theater",Film:"Film",Miscellaneous:"Miscellaneous",Search:"Search","📅 View Calendar":"📅 View Calendar","No events on":"No events on",placeholder:"Enter city"},
 es:{city:"Ciudad:",category:"Categoría:",All:"Todas",Music:"Música",Sports:"Deportes","Arts & Theater":"Arte & Teatro",Film:"Cine",Miscellaneous:"Misceláneo",Search:"Buscar","📅 View Calendar":"📅 Ver calendario","No events on":"No hay eventos el",placeholder:"Introduce ciudad"},
 fr:{city:"Ville:",category:"Catégorie:",All:"Toutes",Music:"Musique",Sports:"Sport","Arts & Theater":"Arts & Théâtre",Film:"Cinéma",Miscellaneous:"Divers",Search:"Rechercher","📅 View Calendar":"📅 Voir calendrier","No events on":"Aucun événement le",placeholder:"Entrez ville"}};
@@ -188,13 +190,19 @@ function renderPage(){
 function toggleCalendar(){
   const c=document.getElementById('calendar');
   c.style.display=c.style.display==='none'?'block':'none';
-  if(!c.innerHTML)renderCalendar();
+  renderCalendar();
 }
 function renderCalendar(){
-  const now=new Date(),y=now.getFullYear(),m=now.getMonth();
-  const fd=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
-  const todayDate=`${y}-${String(m+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  let html=`<h3 style="text-align:center">${now.toLocaleString('default',{month:'long'})} ${y}</h3><div class="calendar-grid">`;
+  const now=new Date();
+  const todayDate=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const y=calendarYear,m=calendarMonth;
+  const fd=new Date(y,m,1).getDay();
+  const dim=new Date(y,m+1,0).getDate();
+  let html=`<div style="text-align:center;margin-bottom:0.5rem;">
+    <button onclick="changeMonth(-1)">⬅️</button>
+    <strong>${new Date(y,m).toLocaleString('default',{month:'long'})} ${y}</strong>
+    <button onclick="changeMonth(1)">➡️</button>
+  </div><div class="calendar-grid">`;
   ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>html+=`<div><strong>${d}</strong></div>`);
   for(let i=0;i<fd;i++)html+=`<div></div>`;
   for(let day=1;day<=dim;day++){
@@ -207,6 +215,12 @@ function renderCalendar(){
   }
   html+='</div>';
   document.getElementById('calendar').innerHTML=html;
+}
+function changeMonth(offset){
+  calendarMonth+=offset;
+  if(calendarMonth<0){calendarMonth=11;calendarYear--;}
+  else if(calendarMonth>11){calendarMonth=0;calendarYear++;}
+  renderCalendar();
 }
 function filterByDate(ds){
   const r=document.getElementById('results');
