@@ -99,7 +99,7 @@
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      grid-auto-rows: 50px; /* FIX to keep consistent row height */
+      grid-auto-rows: 50px;
       text-align: center;
       gap: 0.25rem;
       margin-top: 1rem;
@@ -242,16 +242,22 @@
       const resultsDiv = document.getElementById('results');
       resultsDiv.innerHTML = '';
       for (const e of allEvents) {
+        const venue = e._embedded.venues[0];
         resultsDiv.innerHTML += `
           <div class="event-card">
             <img src="${e.images?.[0]?.url || ''}" alt="${e.name}" class="event-image" />
             <div class="event-content">
               <div class="event-title">${e.name}</div>
               <div class="event-details">
-                <p><strong>Venue:</strong> ${e._embedded.venues[0].name}</p>
+                <p><strong>Venue:</strong> ${venue.name}</p>
                 <p><strong>Date:</strong> ${e.dates.start.localDate}</p>
                 <p><strong>Time:</strong> ${e.dates.start.localTime || 'TBA'}</p>
                 <p><a href="${e.url}" target="_blank">🎟️ Tickets</a></p>
+              </div>
+              <div class="buttons">
+                <button onclick="openMap('${venue.name}', '${venue.city.name}')">🗺️ Map</button>
+                <button onclick="openUber('${venue.name}', '${venue.city.name}')">🚗 Uber</button>
+                <button onclick="openLyft('${venue.name}', '${venue.city.name}')">🚕 Lyft</button>
               </div>
             </div>
           </div>
@@ -265,7 +271,6 @@
       if (calDiv.innerHTML === '') renderCalendar();
     }
 
-    // FIXED Calendar Layout
     function renderCalendar() {
       const now = new Date();
       const year = now.getFullYear();
@@ -276,14 +281,11 @@
       let html = `<h3 style="text-align:center">${now.toLocaleString('default', { month: 'long' })} ${year}</h3>`;
       html += `<div class="calendar-grid">`;
 
-      // Day headers
       ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
         .forEach(d => html += `<div><strong>${d}</strong></div>`);
 
-      // Empty cells before first day
       for (let i = 0; i < firstDay; i++) html += `<div></div>`;
 
-      // Days
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         html += `<div onclick="filterByDate('${dateStr}')">${day}</div>`;
@@ -301,21 +303,39 @@
       }
       resultsDiv.innerHTML = '';
       for (const e of filtered) {
+        const venue = e._embedded.venues[0];
         resultsDiv.innerHTML += `
           <div class="event-card">
             <img src="${e.images?.[0]?.url || ''}" alt="${e.name}" class="event-image" />
             <div class="event-content">
               <div class="event-title">${e.name}</div>
               <div class="event-details">
-                <p><strong>Venue:</strong> ${e._embedded.venues[0].name}</p>
+                <p><strong>Venue:</strong> ${venue.name}</p>
                 <p><strong>Date:</strong> ${e.dates.start.localDate}</p>
                 <p><strong>Time:</strong> ${e.dates.start.localTime || 'TBA'}</p>
                 <p><a href="${e.url}" target="_blank">🎟️ Tickets</a></p>
+              </div>
+              <div class="buttons">
+                <button onclick="openMap('${venue.name}', '${venue.city.name}')">🗺️ Map</button>
+                <button onclick="openUber('${venue.name}', '${venue.city.name}')">🚗 Uber</button>
+                <button onclick="openLyft('${venue.name}', '${venue.city.name}')">🚕 Lyft</button>
               </div>
             </div>
           </div>
         `;
       }
+    }
+
+    function openMap(venue, city) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue + ', ' + city)}`, '_blank');
+    }
+
+    function openUber(venue, city) {
+      window.open(`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(venue + ', ' + city)}`, '_blank');
+    }
+
+    function openLyft(venue, city) {
+      window.open(`https://lyft.com/ride?destination[address]=${encodeURIComponent(venue + ', ' + city)}`, '_blank');
     }
 
     document.getElementById("settingsBtn").addEventListener("click", () => {
