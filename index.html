@@ -193,8 +193,6 @@
       <button id="btnSearch">Search</button>
       <button id="btnCalendar">📅 View Calendar</button>
     </div>
-
-    <p id="locationStatus" style="text-align:center; font-style:italic;"></p>
     <div id="calendar" style="display:none;"></div>
     <div id="results"></div>
   </div>
@@ -287,34 +285,77 @@
       renderPagination();
     }
 
-    function detectUserCity() {
-      const status = document.getElementById("locationStatus");
-      if (navigator.geolocation) {
-        status.textContent = "Detecting your location...";
-        navigator.geolocation.getCurrentPosition(async position => {
-          const { latitude, longitude } = position.coords;
-          try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-            const data = await response.json();
-            const detectedCity = data.address.city || data.address.town || data.address.village || '';
-            if (detectedCity) {
-              document.getElementById('city').value = detectedCity;
-              status.textContent = `Showing events near "${detectedCity}"`;
-              searchEvents();
-            } else {
-              status.textContent = "";
-            }
-          } catch (error) {
-            status.textContent = "";
-            console.error("Reverse geocoding failed:", error);
-          }
-        }, error => {
-          status.textContent = "";
-          console.warn("Geolocation error:", error.message);
-        });
-      } else {
-        console.warn("Geolocation is not supported.");
+    function toggleCalendar() {
+      const calDiv = document.getElementById('calendar');
+      calDiv.style.display = calDiv.style.display === 'none' ? 'block' : 'none';
+      if (calDiv.innerHTML === '') renderCalendar();
+    }
+
+    function renderCalendar() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      let html = `<h3 style="text-align:center">${now.toLocaleString('default', { month: 'long' })} ${year}</h3>`;
+      html += `<div class="calendar-grid">`;
+
+      ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+        .forEach(d => html += `<div><strong>${d}</strong></div>`);
+
+      for (let i = 0; i < firstDay; i++) html += `<div></div>`;
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        html += `<div onclick="filterByDate('${dateStr}')">${day}</div>`;
       }
+      html += `</div>`;
+      document.getElementById('calendar').innerHTML = html;
+    }
+
+    function filterByDate(dateStr) {
+      const resultsDiv = document.getElementById('results');
+      const filtered = allEvents.filter(e => e.dates.start.localDate === dateStr);
+      if (!filtered.length) {
+        resultsDiv.innerHTML = `<p style="text-align:center;">${langData[currentLang]["No events on"]} ${dateStr}</p>`;
+        return;
+      }
+      resultsDiv.innerHTML = '';
+      for (const e of filtered) {
+        const venue = e._embedded.venues[0];
+        resultsDiv.innerHTML += `
+          <div class="event-card">
+            <img src="${e.images?.[0]?.url || ''}" alt="${e.name}" class="event-image" />
+            <div class="event-content">
+              <div class="event-title">${e.name}</div>
+              <div class="event-details">
+                <p><strong>Venue:</strong> ${venue.name}</p>
+                <p><strong>Date:</strong> ${e.dates.start.localDate}</p>
+                <p><strong>Time:</strong> ${e.dates.start.localTime || 'TBA'}</p>
+                <p><a href="${e.url}" target="_blank">🎟️ Tickets</a></p>
+              </div>
+              <div class="buttons">
+                <button onclick="openMap('${venue.name}', '${venue.city.name}')">🗺️ Map</button>
+                <button onclick="openUber('${venue.name}', '${venue.city.name}')">🚗 Uber</button>
+                <button onclick="openLyft('${venue.name}', '${venue.city.name}')">🚕 Lyft</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function openMap(venue, city) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue + ', ' + city)}`, '_blank');
+    }
+
+    function openUber(venue, city) {
+      window.open(`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(venue + ', ' + city)}`, '_blank');
+    }
+
+    function openLyft(venue, city) {
+      window.open(`https://lyft.com/ride?destination[address]=${encodeURIComponent(venue + ', ' + city)}`, '_blank');
     }
 
     document.getElementById("settingsBtn").addEventListener("click", () => {
@@ -327,7 +368,6 @@
     document.getElementById("btnCalendar").addEventListener("click", toggleCalendar);
 
     setLanguage();
-    detectUserCity();
   </script>
 </body>
 </html>
