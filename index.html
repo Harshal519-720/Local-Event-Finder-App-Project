@@ -1,373 +1,232 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Eventure</title>
-  <style>
-    :root {
-      --bg-color: #f0f8ff;
-      --card-color: #ffffff;
-      --primary-color: #0077cc;
-      --border-color: #a7d4f3;
-      --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      --text-color: #000000;
-      --spacing: 0.5rem;
-    }
-
-    body.dark {
-      --bg-color: #121212;
-      --card-color: #1e1e1e;
-      --primary-color: #4da8ff;
-      --border-color: #333333;
-      --text-color: #ffffff;
-      background: linear-gradient(135deg, #1a1a1a, #121212);
-    }
-
-    body {
-      margin: 0;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #e0f7ff, #f0f8ff);
-      color: var(--text-color);
-      padding: var(--spacing) 1rem;
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-
-    .container { max-width: 960px; margin: auto; }
-    .logo-container { display: flex; justify-content: center; margin: var(--spacing) 0; }
-    .logo { height: 150px; max-width: 100%; }
-    .logo-light { display: block; }
-    .logo-dark { display: none; }
-    body.dark .logo-light { display: none; }
-    body.dark .logo-dark { display: block; }
-
-    .search-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--spacing);
-      justify-content: center;
-      margin-bottom: 1rem;
-    }
-
-    input[type="text"], select {
-      padding: 0.5rem;
-      font-size: 1rem;
-    }
-
-    button {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      background-color: var(--primary-color);
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    button:hover { background-color: #005fa3; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    .event-card {
-      display: flex;
-      background-color: var(--card-color);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      box-shadow: var(--shadow);
-      padding: 1rem;
-      margin: 1rem 0;
-      gap: 1rem;
-      transition: transform 0.2s ease;
-    }
-    .event-card:hover { transform: scale(1.02); }
-
-    .event-image {
-      width: 150px;
-      height: 100px;
-      object-fit: cover;
-      border-radius: 8px;
-    }
-
-    .event-content { flex: 1; }
-    .event-title { font-size: 1.25rem; font-weight: bold; }
-
-    .buttons { margin-top: 0.75rem; }
-    .buttons button { margin-right: 0.5rem; }
-
-    .pagination { text-align: center; margin: 2rem 0; }
-    .pagination button.active { background: var(--border-color); }
-
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      grid-auto-rows: 50px;
-      text-align: center;
-      gap: 0.25rem;
-      margin-top: 1rem;
-    }
-    .calendar-grid div {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 0.75rem;
-      border-radius: 6px;
-      background-color: var(--card-color);
-      box-shadow: var(--shadow);
-      cursor: pointer;
-    }
-    .calendar-grid div:hover { background-color: var(--border-color); }
-
-    a { color: #cc0077; font-weight: bold; text-decoration: none; }
-
-    @media (max-width: 600px) {
-      .search-bar { flex-direction: column; align-items: center; }
-      .event-card { flex-direction: column; align-items: center; }
-      .event-title { font-size: 1.1rem; }
-      .buttons { flex-direction: column; }
-      .event-image { width: 100%; height: auto; }
-    }
-
-    .settings-container {
-      position: absolute;
-      top: 0.5rem;
-      right: 1rem;
-    }
-    #settingsMenu {
-      display: none;
-      position: absolute;
-      right: 0;
-      background: var(--card-color);
-      color: var(--text-color);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 0.5rem;
-      margin-top: 0.5rem;
-      box-shadow: var(--shadow);
-      z-index: 100;
-    }
-    #settingsMenu label { display: block; margin-bottom: 0.5rem; }
-    .settings-container button {
-      background: none;
-      border: none;
-      font-size: 1.2rem;
-      cursor: pointer;
-      color: var(--text-color);
-    }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Eventure</title>
+<style>
+  :root {
+    --bg-color: #f0f8ff;
+    --card-color: #ffffff;
+    --primary-color: #0077cc;
+    --border-color: #a7d4f3;
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    --text-color: #000000;
+    --spacing: 0.5rem;
+  }
+  body.dark {
+    --bg-color: #121212;
+    --card-color: #1e1e1e;
+    --primary-color: #4da8ff;
+    --border-color: #333333;
+    --text-color: #ffffff;
+    background: linear-gradient(135deg,#1a1a1a,#121212);
+  }
+  body {
+    margin: 0;
+    font-family: "Segoe UI",sans-serif;
+    background: linear-gradient(135deg,#e0f7ff,#f0f8ff);
+    color: var(--text-color);
+    padding: var(--spacing) 1rem;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .container{max-width:960px;margin:auto;}
+  .logo-container{display:flex;justify-content:center;margin:var(--spacing) 0;}
+  .logo{height:150px;max-width:100%;}
+  .logo-light{display:block;}
+  .logo-dark{display:none;}
+  body.dark .logo-light{display:none;}
+  body.dark .logo-dark{display:block;}
+  .search-bar{display:flex;flex-wrap:wrap;gap:var(--spacing);justify-content:center;margin-bottom:1rem;}
+  input[type="text"],select{padding:0.5rem;font-size:1rem;}
+  button{padding:0.5rem 1rem;font-size:1rem;background-color:var(--primary-color);color:white;border:none;border-radius:4px;cursor:pointer;transition:background-color 0.3s ease;}
+  button:hover{background-color:#005fa3;}
+  button:disabled{opacity:0.5;cursor:not-allowed;}
+  .event-card{display:flex;background-color:var(--card-color);border:1px solid var(--border-color);border-radius:10px;box-shadow:var(--shadow);padding:1rem;margin:1rem 0;gap:1rem;transition:transform 0.2s ease;}
+  .event-card:hover{transform:scale(1.02);}
+  .event-image{width:150px;height:100px;object-fit:cover;border-radius:8px;}
+  .event-content{flex:1;}
+  .event-title{font-size:1.25rem;font-weight:bold;}
+  .buttons{margin-top:0.75rem;}
+  .buttons button{margin-right:0.5rem;}
+  .pagination{text-align:center;margin:2rem 0;}
+  .pagination button.active{background:var(--border-color);}
+  .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:50px;text-align:center;gap:0.25rem;margin-top:1rem;}
+  .calendar-grid div{display:flex;justify-content:center;align-items:center;padding:0.75rem;border-radius:6px;background-color:var(--card-color);box-shadow:var(--shadow);cursor:pointer;}
+  .calendar-grid div.today{background-color:gold !important;}
+  .calendar-grid div.no-events{opacity:0.4;cursor:not-allowed;}
+  .calendar-grid div:hover:not(.no-events){background-color:var(--border-color);}
+  a{color:#cc0077;font-weight:bold;text-decoration:none;}
+  @media(max-width:600px){
+    .search-bar{flex-direction:column;align-items:center;}
+    .event-card{flex-direction:column;align-items:center;}
+    .event-title{font-size:1.1rem;}
+    .buttons{flex-direction:column;}
+    .event-image{width:100%;height:auto;}
+  }
+  .settings-container{position:absolute;top:0.5rem;right:1rem;}
+  #settingsMenu{display:none;position:absolute;right:0;background:var(--card-color);color:var(--text-color);border:1px solid var(--border-color);border-radius:6px;padding:0.5rem;margin-top:0.5rem;box-shadow:var(--shadow);z-index:100;}
+  #settingsMenu label{display:block;margin-bottom:0.5rem;}
+  .settings-container button{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-color);}
+</style>
 </head>
 <body>
-  <div class="settings-container">
-    <button id="settingsBtn">⚙️</button>
-    <div id="settingsMenu">
-      <label>
-        🌐 
-        <select id="langSelect">
-          <option value="en">English</option>
-          <option value="es">Español</option>
-          <option value="fr">Français</option>
-        </select>
-      </label>
-      <label>
-        <input type="checkbox" id="darkToggle"/> 🌙 Dark Mode
-      </label>
-    </div>
-  </div>
-
-  <div class="container">
-    <div class="logo-container">
-      <img src="logo-light.png" alt="Light Logo" class="logo logo-light">
-      <img src="logo-dark.png" alt="Dark Logo" class="logo logo-dark">
-    </div>
-
-    <div class="search-bar">
-      <label for="city" id="labelCity">City:</label>
-      <input type="text" id="city" placeholder="Enter city"/>
-      <label for="category" id="labelCategory">Category:</label>
-      <select id="category">
-        <option value="All">All</option>
-        <option value="Music">Music</option>
-        <option value="Sports">Sports</option>
-        <option value="Arts & Theater">Arts & Theater</option>
-        <option value="Film">Film</option>
-        <option value="Miscellaneous">Miscellaneous</option>
+<div class="settings-container">
+  <button id="settingsBtn">⚙️</button>
+  <div id="settingsMenu">
+    <label>🌐 
+      <select id="langSelect">
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
       </select>
-      <button id="btnSearch">Search</button>
-      <button id="btnCalendar">📅 View Calendar</button>
-    </div>
-    <div id="calendar" style="display:none;"></div>
-    <div id="results"></div>
+    </label>
+    <label><input type="checkbox" id="darkToggle"/> 🌙 Dark Mode</label>
   </div>
+</div>
+<div class="container">
+  <div class="logo-container">
+    <img src="logo-light.png" alt="Light Logo" class="logo logo-light">
+    <img src="logo-dark.png" alt="Dark Logo" class="logo logo-dark">
+  </div>
+  <div class="search-bar">
+    <label for="city" id="labelCity">City:</label>
+    <input type="text" id="city" placeholder="Enter city"/>
+    <label for="category" id="labelCategory">Category:</label>
+    <select id="category">
+      <option value="All">All</option>
+      <option value="Music">Music</option>
+      <option value="Sports">Sports</option>
+      <option value="Arts & Theater">Arts & Theater</option>
+      <option value="Film">Film</option>
+      <option value="Miscellaneous">Miscellaneous</option>
+    </select>
+    <button id="btnSearch">Search</button>
+    <button id="btnCalendar">📅 View Calendar</button>
+  </div>
+  <div id="calendar" style="display:none;"></div>
+  <div id="results"></div>
+</div>
+<script>
+const apiKey = 'qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
+let allEvents=[],currentLang='en',currentPage=1;
+const perPage=10;
+const langData={en:{city:"City:",category:"Category:",All:"All",Music:"Music",Sports:"Sports","Arts & Theater":"Arts & Theater",Film:"Film",Miscellaneous:"Miscellaneous",Search:"Search","📅 View Calendar":"📅 View Calendar","No events on":"No events on",placeholder:"Enter city"},
+es:{city:"Ciudad:",category:"Categoría:",All:"Todas",Music:"Música",Sports:"Deportes","Arts & Theater":"Arte & Teatro",Film:"Cine",Miscellaneous:"Misceláneo",Search:"Buscar","📅 View Calendar":"📅 Ver calendario","No events on":"No hay eventos el",placeholder:"Introduce ciudad"},
+fr:{city:"Ville:",category:"Catégorie:",All:"Toutes",Music:"Musique",Sports:"Sport","Arts & Theater":"Arts & Théâtre",Film:"Cinéma",Miscellaneous:"Divers",Search:"Rechercher","📅 View Calendar":"📅 Voir calendrier","No events on":"Aucun événement le",placeholder:"Entrez ville"}};
 
-  <script>
-    const apiKey = 'qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
-    let allEvents = [];
-    let currentLang = 'en';
-    let currentPage = 1;
-    const perPage = 10;
-
-    const langData = {
-      en: { city: "City:", category: "Category:", All: "All", Music: "Music", Sports: "Sports", "Arts & Theater": "Arts & Theater", Film: "Film", Miscellaneous: "Miscellaneous", Search: "Search", "📅 View Calendar": "📅 View Calendar", "No events on": "No events on", placeholder: "Enter city" },
-      es: { city: "Ciudad:", category: "Categoría:", All: "Todas", Music: "Música", Sports: "Deportes", "Arts & Theater": "Arte & Teatro", Film: "Cine", Miscellaneous: "Misceláneo", Search: "Buscar", "📅 View Calendar": "📅 Ver calendario", "No events on": "No hay eventos el", placeholder: "Introduce ciudad" },
-      fr: { city: "Ville :", category: "Catégorie :", All: "Toutes", Music: "Musique", Sports: "Sport", "Arts & Theater": "Arts & Théâtre", Film: "Cinéma", Miscellaneous: "Divers", Search: "Rechercher", "📅 View Calendar": "📅 Voir calendrier", "No events on": "Aucun événement le", placeholder: "Entrez ville" }
-    };
-
-    function setLanguage() {
-      currentLang = document.getElementById('langSelect').value;
-      const t = langData[currentLang];
-      document.getElementById('labelCity').textContent = t.city;
-      document.getElementById('city').placeholder = t.placeholder;
-      document.getElementById('labelCategory').textContent = t.category;
-      Array.from(document.getElementById('category').options).forEach(opt => {
-        opt.textContent = t[opt.value] || opt.value;
-      });
-      document.getElementById('btnSearch').textContent = t.Search;
-      document.getElementById('btnCalendar').textContent = t["📅 View Calendar"];
-    }
-
-    function toggleDark() {
-      document.body.classList.toggle("dark");
-    }
-
-    function searchEvents() {
-      const city = document.getElementById('city').value;
-      const category = document.getElementById('category').value;
-      const classification = category === 'All' ? '' : `&classificationName=${encodeURIComponent(category)}`;
-      const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=200${classification}`;
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          allEvents = data._embedded?.events || [];
-          currentPage = 1;
-          renderPage();
-        });
-    }
-
-    function renderPagination() {
-      const totalPages = Math.ceil(allEvents.length / perPage);
-      const paginationDiv = document.createElement('div');
-      paginationDiv.className = 'pagination';
-      for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement('button');
-        btn.textContent = i;
-        if (i === currentPage) btn.classList.add('active');
-        btn.onclick = () => { currentPage = i; renderPage(); };
-        paginationDiv.appendChild(btn);
-      }
-      document.getElementById('results').appendChild(paginationDiv);
-    }
-
-    function renderPage() {
-      const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = '';
-      const start = (currentPage - 1) * perPage;
-      const pageEvents = allEvents.slice(start, start + perPage);
-      for (const e of pageEvents) {
-        const venue = e._embedded.venues[0];
-        resultsDiv.innerHTML += `
-          <div class="event-card">
-            <img src="${e.images?.[0]?.url || ''}" alt="${e.name}" class="event-image" />
-            <div class="event-content">
-              <div class="event-title">${e.name}</div>
-              <div class="event-details">
-                <p><strong>Venue:</strong> ${venue.name}</p>
-                <p><strong>Date:</strong> ${e.dates.start.localDate}</p>
-                <p><strong>Time:</strong> ${e.dates.start.localTime || 'TBA'}</p>
-                <p><a href="${e.url}" target="_blank">🎟️ Tickets</a></p>
-              </div>
-              <div class="buttons">
-                <button onclick="openMap('${venue.name}', '${venue.city.name}')">🗺️ Map</button>
-                <button onclick="openUber('${venue.name}', '${venue.city.name}')">🚗 Uber</button>
-                <button onclick="openLyft('${venue.name}', '${venue.city.name}')">🚕 Lyft</button>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-      renderPagination();
-    }
-
-    function toggleCalendar() {
-      const calDiv = document.getElementById('calendar');
-      calDiv.style.display = calDiv.style.display === 'none' ? 'block' : 'none';
-      if (calDiv.innerHTML === '') renderCalendar();
-    }
-
-    function renderCalendar() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      const firstDay = new Date(year, month, 1).getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-      let html = `<h3 style="text-align:center">${now.toLocaleString('default', { month: 'long' })} ${year}</h3>`;
-      html += `<div class="calendar-grid">`;
-
-      ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-        .forEach(d => html += `<div><strong>${d}</strong></div>`);
-
-      for (let i = 0; i < firstDay; i++) html += `<div></div>`;
-
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        html += `<div onclick="filterByDate('${dateStr}')">${day}</div>`;
-      }
-      html += `</div>`;
-      document.getElementById('calendar').innerHTML = html;
-    }
-
-    function filterByDate(dateStr) {
-      const resultsDiv = document.getElementById('results');
-      const filtered = allEvents.filter(e => e.dates.start.localDate === dateStr);
-      if (!filtered.length) {
-        resultsDiv.innerHTML = `<p style="text-align:center;">${langData[currentLang]["No events on"]} ${dateStr}</p>`;
-        return;
-      }
-      resultsDiv.innerHTML = '';
-      for (const e of filtered) {
-        const venue = e._embedded.venues[0];
-        resultsDiv.innerHTML += `
-          <div class="event-card">
-            <img src="${e.images?.[0]?.url || ''}" alt="${e.name}" class="event-image" />
-            <div class="event-content">
-              <div class="event-title">${e.name}</div>
-              <div class="event-details">
-                <p><strong>Venue:</strong> ${venue.name}</p>
-                <p><strong>Date:</strong> ${e.dates.start.localDate}</p>
-                <p><strong>Time:</strong> ${e.dates.start.localTime || 'TBA'}</p>
-                <p><a href="${e.url}" target="_blank">🎟️ Tickets</a></p>
-              </div>
-              <div class="buttons">
-                <button onclick="openMap('${venue.name}', '${venue.city.name}')">🗺️ Map</button>
-                <button onclick="openUber('${venue.name}', '${venue.city.name}')">🚗 Uber</button>
-                <button onclick="openLyft('${venue.name}', '${venue.city.name}')">🚕 Lyft</button>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-    }
-
-    function openMap(venue, city) {
-      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue + ', ' + city)}`, '_blank');
-    }
-
-    function openUber(venue, city) {
-      window.open(`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(venue + ', ' + city)}`, '_blank');
-    }
-
-    function openLyft(venue, city) {
-      window.open(`https://lyft.com/ride?destination[address]=${encodeURIComponent(venue + ', ' + city)}`, '_blank');
-    }
-
-    document.getElementById("settingsBtn").addEventListener("click", () => {
-      const menu = document.getElementById("settingsMenu");
-      menu.style.display = menu.style.display === "block" ? "none" : "block";
+function setLanguage(){
+  currentLang=document.getElementById('langSelect').value;
+  localStorage.setItem('lang',currentLang);
+  const t=langData[currentLang];
+  document.getElementById('labelCity').textContent=t.city;
+  document.getElementById('city').placeholder=t.placeholder;
+  document.getElementById('labelCategory').textContent=t.category;
+  Array.from(document.getElementById('category').options).forEach(opt=>{opt.textContent=t[opt.value]||opt.value});
+  document.getElementById('btnSearch').textContent=t.Search;
+  document.getElementById('btnCalendar').textContent=t["📅 View Calendar"];
+}
+function toggleDark(){
+  document.body.classList.toggle("dark");
+  localStorage.setItem('darkMode',document.body.classList.contains('dark'));
+}
+function searchEvents(){
+  const city=document.getElementById('city').value;
+  const category=document.getElementById('category').value;
+  localStorage.setItem('lastCity',city);
+  localStorage.setItem('lastCategory',category);
+  const classification=category==='All'?'':`&classificationName=${encodeURIComponent(category)}`;
+  fetch(`https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=200${classification}`)
+    .then(res=>res.json()).then(data=>{
+      allEvents=data._embedded?.events||[];
+      currentPage=1;
+      renderPage();
     });
-    document.getElementById("langSelect").addEventListener("change", setLanguage);
-    document.getElementById("darkToggle").addEventListener("change", toggleDark);
-    document.getElementById("btnSearch").addEventListener("click", searchEvents);
-    document.getElementById("btnCalendar").addEventListener("click", toggleCalendar);
-
-    setLanguage();
-  </script>
+}
+function renderPagination(){
+  const totalPages=Math.ceil(allEvents.length/perPage);
+  const pagDiv=document.createElement('div');
+  pagDiv.className='pagination';
+  const addBtn=(label,page)=>{const b=document.createElement('button');b.textContent=label;if(page===currentPage)b.classList.add('active');b.onclick=()=>{currentPage=page;renderPage()};pagDiv.appendChild(b);}
+  if(totalPages<=7){for(let i=1;i<=totalPages;i++)addBtn(i,i);}
+  else{
+    addBtn(1,1);
+    if(currentPage>3)pagDiv.append('...');
+    for(let i=Math.max(2,currentPage-1);i<=Math.min(totalPages-1,currentPage+1);i++)addBtn(i,i);
+    if(currentPage<totalPages-2)pagDiv.append('...');
+    addBtn(totalPages,totalPages);
+  }
+  document.getElementById('results').appendChild(pagDiv);
+}
+function renderEventCard(e){
+  const v=e._embedded.venues[0];
+  return `<div class="event-card">
+    <img src="${e.images?.[0]?.url||''}" loading="lazy" alt="${e.name}" class="event-image"/>
+    <div class="event-content">
+      <div class="event-title">${e.name}</div>
+      <div class="event-details">
+        <p><strong>Venue:</strong> ${v.name}</p>
+        <p><strong>Date:</strong> ${e.dates.start.localDate}</p>
+        <p><strong>Time:</strong> ${e.dates.start.localTime||'TBA'}</p>
+        <p><a href="${e.url}" target="_blank">🎟️ Tickets</a></p>
+      </div>
+      <div class="buttons">
+        <button onclick="openMap('${v.name}','${v.city.name}')">🗺️ Map</button>
+        <button onclick="openUber('${v.name}','${v.city.name}')">🚗 Uber</button>
+        <button onclick="openLyft('${v.name}','${v.city.name}')">🚕 Lyft</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderPage(){
+  const resultsDiv=document.getElementById('results');
+  resultsDiv.innerHTML='';
+  const start=(currentPage-1)*perPage;
+  resultsDiv.innerHTML+=allEvents.slice(start,start+perPage).map(renderEventCard).join('');
+  renderPagination();
+}
+function toggleCalendar(){
+  const c=document.getElementById('calendar');
+  c.style.display=c.style.display==='none'?'block':'none';
+  if(!c.innerHTML)renderCalendar();
+}
+function renderCalendar(){
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth();
+  const fd=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
+  const todayDate=`${y}-${String(m+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  let html=`<h3 style="text-align:center">${now.toLocaleString('default',{month:'long'})} ${y}</h3><div class="calendar-grid">`;
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>html+=`<div><strong>${d}</strong></div>`);
+  for(let i=0;i<fd;i++)html+=`<div></div>`;
+  for(let day=1;day<=dim;day++){
+    const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const hasEvent=allEvents.some(e=>e.dates.start.localDate===ds);
+    const classes=[];
+    if(ds===todayDate)classes.push('today');
+    if(!hasEvent)classes.push('no-events');
+    html+=`<div class="${classes.join(' ')}" ${hasEvent?`onclick="filterByDate('${ds}')`:''}>${day}</div>`;
+  }
+  html+='</div>';
+  document.getElementById('calendar').innerHTML=html;
+}
+function filterByDate(ds){
+  const r=document.getElementById('results');
+  const f=allEvents.filter(e=>e.dates.start.localDate===ds);
+  if(!f.length){r.innerHTML=`<p style="text-align:center;">${langData[currentLang]["No events on"]} ${ds}</p>`;return;}
+  r.innerHTML=f.map(renderEventCard).join('');
+}
+function openMap(v,c){window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v+', '+c)}`,'_blank')}
+function openUber(v,c){window.open(`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(v+', '+c)}`,'_blank')}
+function openLyft(v,c){window.open(`https://lyft.com/ride?destination[address]=${encodeURIComponent(v+', '+c)}`,'_blank')}
+document.getElementById("settingsBtn").addEventListener("click",()=>{const m=document.getElementById("settingsMenu");m.style.display=m.style.display==="block"?"none":"block";});
+document.getElementById("langSelect").addEventListener("change",setLanguage);
+document.getElementById("darkToggle").addEventListener("change",toggleDark);
+document.getElementById("btnSearch").addEventListener("click",searchEvents);
+document.getElementById("btnCalendar").addEventListener("click",toggleCalendar);
+if(localStorage.getItem('lang'))document.getElementById('langSelect').value=localStorage.getItem('lang');
+if(localStorage.getItem('darkMode')==='true')document.body.classList.add('dark');
+if(localStorage.getItem('lastCity'))document.getElementById('city').value=localStorage.getItem('lastCity');
+if(localStorage.getItem('lastCategory'))document.getElementById('category').value=localStorage.getItem('lastCategory');
+setLanguage();
+</script>
 </body>
 </html>
