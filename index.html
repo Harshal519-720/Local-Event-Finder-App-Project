@@ -33,25 +33,11 @@
       transition: background-color 0.3s ease, color 0.3s ease;
     }
 
-    .container {
-      max-width: 960px;
-      margin: auto;
-    }
-
-    .logo-container {
-      display: flex;
-      justify-content: center;
-      margin: var(--spacing) 0;
-    }
-
-    .logo {
-      height: 150px;
-      max-width: 100%;
-    }
-
+    .container { max-width: 960px; margin: auto; }
+    .logo-container { display: flex; justify-content: center; margin: var(--spacing) 0; }
+    .logo { height: 150px; max-width: 100%; }
     .logo-light { display: block; }
     .logo-dark { display: none; }
-
     body.dark .logo-light { display: none; }
     body.dark .logo-dark { display: block; }
 
@@ -113,17 +99,20 @@
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
+      grid-auto-rows: 50px; /* FIX to keep consistent row height */
       text-align: center;
       gap: 0.25rem;
       margin-top: 1rem;
     }
     .calendar-grid div {
+      display: flex;
+      justify-content: center;
+      align-items: center;
       padding: 0.75rem;
       border-radius: 6px;
       background-color: var(--card-color);
       box-shadow: var(--shadow);
       cursor: pointer;
-      transition: background-color 0.2s ease;
     }
     .calendar-grid div:hover { background-color: var(--border-color); }
 
@@ -209,129 +198,136 @@
   </div>
 
   <script>
+    const apiKey = 'qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
+    let allEvents = [];
+    let currentLang = 'en';
+
     const langData = {
       en: { city: "City:", category: "Category:", All: "All", Music: "Music", Sports: "Sports", "Arts & Theater": "Arts & Theater", Film: "Film", Miscellaneous: "Miscellaneous", Search: "Search", "📅 View Calendar": "📅 View Calendar", "No events on": "No events on", placeholder: "Enter city" },
       es: { city: "Ciudad:", category: "Categoría:", All: "Todas", Music: "Música", Sports: "Deportes", "Arts & Theater": "Arte & Teatro", Film: "Cine", Miscellaneous: "Misceláneo", Search: "Buscar", "📅 View Calendar": "📅 Ver calendario", "No events on": "No hay eventos el", placeholder: "Introduce ciudad" },
       fr: { city: "Ville :", category: "Catégorie :", All: "Toutes", Music: "Musique", Sports: "Sport", "Arts & Theater": "Arts & Théâtre", Film: "Cinéma", Miscellaneous: "Divers", Search: "Rechercher", "📅 View Calendar": "📅 Voir calendrier", "No events on": "Aucun événement le", placeholder: "Entrez ville" }
     };
 
-    const apiKey = 'qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
-    let allEvents = [], currentPage = 1, totalPages = 1, cityInput, categorySelect, resultsDiv, calendarDiv;
-
-    const perPage = 12;
-    const debounce = (fn, delay) => { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); }; };
-
     function setLanguage() {
-      const lang = document.getElementById('langSelect').value;
-      localStorage.setItem('lang', lang);
-      const t = langData[lang];
+      currentLang = document.getElementById('langSelect').value;
+      const t = langData[currentLang];
       document.getElementById('labelCity').textContent = t.city;
-      cityInput.placeholder = t.placeholder;
+      document.getElementById('city').placeholder = t.placeholder;
       document.getElementById('labelCategory').textContent = t.category;
-      [...categorySelect.options].forEach(opt => opt.textContent = t[opt.value] || opt.value);
+      Array.from(document.getElementById('category').options).forEach(opt => {
+        opt.textContent = t[opt.value] || opt.value;
+      });
       document.getElementById('btnSearch').textContent = t.Search;
       document.getElementById('btnCalendar').textContent = t["📅 View Calendar"];
     }
 
     function toggleDark() {
-      document.body.classList.toggle('dark');
-      localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+      document.body.classList.toggle("dark");
     }
 
-    function renderEventCard(e) {
-      const img = e.images?.[0]?.url || '';
-      return `
-        <div class="event-card">
-          <img src="${img}" loading="lazy" alt="${e.name}" class="event-image" />
-          <div class="event-content">
-            <div class="event-title">${e.name}</div>
-            <div class="event-details">
-              <p><strong>Venue:</strong> ${e._embedded.venues[0].name}</p>
-              <p><strong>Date:</strong> ${e.dates.start.localDate}</p>
-              <p><strong>Time:</strong> ${e.dates.start.localTime || 'TBA'}</p>
-              <p><a href="${e.url}" target="_blank">🎟️ Tickets</a></p>
-            </div>
-            <div class="buttons">
-              <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e._embedded.venues[0].name + ', ' + e._embedded.venues[0].city.name)}')">🗺️ Map</button>
-              <button onclick="window.open('https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(e._embedded.venues[0].name + ', ' + e._embedded.venues[0].city.name)}')">🚗 Uber</button>
-              <button onclick="window.open('https://lyft.com/ride?destination[address]=${encodeURIComponent(e._embedded.venues[0].name + ', ' + e._embedded.venues[0].city.name)}')">🚕 Lyft</button>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    function renderPagination() {
-      const pagDiv = document.createElement('div');
-      pagDiv.className = 'pagination';
-      for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement('button');
-        btn.textContent = i;
-        if (i === currentPage) btn.classList.add('active');
-        btn.onclick = () => { currentPage = i; renderPage(); };
-        pagDiv.appendChild(btn);
-      }
-      resultsDiv.appendChild(pagDiv);
+    function searchEvents() {
+      const city = document.getElementById('city').value;
+      const category = document.getElementById('category').value;
+      const classification = category === 'All' ? '' : `&classificationName=${encodeURIComponent(category)}`;
+      const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=200${classification}`;
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          allEvents = data._embedded?.events || [];
+          renderPage();
+        });
     }
 
     function renderPage() {
-      resultsDiv.innerHTML = allEvents.slice((currentPage - 1) * perPage, currentPage * perPage).map(renderEventCard).join('');
-      renderPagination();
-    }
-
-    async function searchEvents() {
-      const city = cityInput.value.trim();
-      const category = categorySelect.value;
-      const classification = category === 'All' ? '' : `&classificationName=${encodeURIComponent(category)}`;
-      const url = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=${perPage}&page=${currentPage-1}${classification}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      allEvents = data._embedded?.events || [];
-      totalPages = data.page?.totalPages || 1;
-      renderPage();
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '';
+      for (const e of allEvents) {
+        resultsDiv.innerHTML += `
+          <div class="event-card">
+            <img src="${e.images?.[0]?.url || ''}" alt="${e.name}" class="event-image" />
+            <div class="event-content">
+              <div class="event-title">${e.name}</div>
+              <div class="event-details">
+                <p><strong>Venue:</strong> ${e._embedded.venues[0].name}</p>
+                <p><strong>Date:</strong> ${e.dates.start.localDate}</p>
+                <p><strong>Time:</strong> ${e.dates.start.localTime || 'TBA'}</p>
+                <p><a href="${e.url}" target="_blank">🎟️ Tickets</a></p>
+              </div>
+            </div>
+          </div>
+        `;
+      }
     }
 
     function toggleCalendar() {
-      calendarDiv.style.display = calendarDiv.style.display === 'none' ? 'block' : 'none';
-      if (!calendarDiv.innerHTML) renderCalendar();
+      const calDiv = document.getElementById('calendar');
+      calDiv.style.display = calDiv.style.display === 'none' ? 'block' : 'none';
+      if (calDiv.innerHTML === '') renderCalendar();
     }
 
+    // FIXED Calendar Layout
     function renderCalendar() {
-      const now = new Date(), y = now.getFullYear(), m = now.getMonth();
-      const firstDay = new Date(y, m, 1).getDay();
-      const daysInMonth = new Date(y, m+1, 0).getDate();
-      let html = `<h3 style="text-align:center">${now.toLocaleString('default',{month:'long'})} ${y}</h3><div class="calendar-grid">`;
-      ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => html += `<div><strong>${d}</strong></div>`);
-      html += '<div>'.repeat(firstDay);
-      for (let day=1; day<=daysInMonth; day++) {
-        const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      let html = `<h3 style="text-align:center">${now.toLocaleString('default', { month: 'long' })} ${year}</h3>`;
+      html += `<div class="calendar-grid">`;
+
+      // Day headers
+      ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+        .forEach(d => html += `<div><strong>${d}</strong></div>`);
+
+      // Empty cells before first day
+      for (let i = 0; i < firstDay; i++) html += `<div></div>`;
+
+      // Days
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         html += `<div onclick="filterByDate('${dateStr}')">${day}</div>`;
       }
-      html += '</div>';
-      calendarDiv.innerHTML = html;
+      html += `</div>`;
+      document.getElementById('calendar').innerHTML = html;
     }
 
     function filterByDate(dateStr) {
+      const resultsDiv = document.getElementById('results');
       const filtered = allEvents.filter(e => e.dates.start.localDate === dateStr);
-      resultsDiv.innerHTML = filtered.length ? filtered.map(renderEventCard).join('') : `<p style="text-align:center;">${langData[localStorage.getItem('lang') || 'en']["No events on"]} ${dateStr}</p>`;
+      if (!filtered.length) {
+        resultsDiv.innerHTML = `<p style="text-align:center;">${langData[currentLang]["No events on"]} ${dateStr}</p>`;
+        return;
+      }
+      resultsDiv.innerHTML = '';
+      for (const e of filtered) {
+        resultsDiv.innerHTML += `
+          <div class="event-card">
+            <img src="${e.images?.[0]?.url || ''}" alt="${e.name}" class="event-image" />
+            <div class="event-content">
+              <div class="event-title">${e.name}</div>
+              <div class="event-details">
+                <p><strong>Venue:</strong> ${e._embedded.venues[0].name}</p>
+                <p><strong>Date:</strong> ${e.dates.start.localDate}</p>
+                <p><strong>Time:</strong> ${e.dates.start.localTime || 'TBA'}</p>
+                <p><a href="${e.url}" target="_blank">🎟️ Tickets</a></p>
+              </div>
+            </div>
+          </div>
+        `;
+      }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      cityInput = document.getElementById('city');
-      categorySelect = document.getElementById('category');
-      resultsDiv = document.getElementById('results');
-      calendarDiv = document.getElementById('calendar');
-      document.getElementById('btnSearch').addEventListener('click', debounce(searchEvents, 300));
-      document.getElementById('btnCalendar').addEventListener('click', toggleCalendar);
-      document.getElementById('settingsBtn').addEventListener('click', () => {
-        const m = document.getElementById('settingsMenu');
-        m.style.display = m.style.display === 'block' ? 'none' : 'block';
-      });
-      document.getElementById('langSelect').addEventListener('change', setLanguage);
-      document.getElementById('darkToggle').addEventListener('change', toggleDark);
-      if (localStorage.getItem('lang')) document.getElementById('langSelect').value = localStorage.getItem('lang');
-      if (localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark');
-      setLanguage();
+    document.getElementById("settingsBtn").addEventListener("click", () => {
+      const menu = document.getElementById("settingsMenu");
+      menu.style.display = menu.style.display === "block" ? "none" : "block";
     });
+    document.getElementById("langSelect").addEventListener("change", setLanguage);
+    document.getElementById("darkToggle").addEventListener("change", toggleDark);
+    document.getElementById("btnSearch").addEventListener("click", searchEvents);
+    document.getElementById("btnCalendar").addEventListener("click", toggleCalendar);
+
+    setLanguage();
   </script>
 </body>
 </html>
