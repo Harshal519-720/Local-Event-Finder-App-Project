@@ -226,7 +226,11 @@ function changeMonth(offset){
 function filterByDate(ds){
   const filtered=allEvents.filter(e=>e.dates.start.localDate===ds);
   const r=document.getElementById('results');
-  if(!filtered.length){r.innerHTML=`<p style="text-align:center;">${langData[currentLang]["No events on"]} ${ds}</p>`;return;}
+  r.innerHTML = '';
+  currentPage = 1;
+  if(!filtered.length){
+    r.innerHTML=`<p style="text-align:center;">${langData[currentLang]["No events on"]} ${ds}</p>`;return;
+  }
   r.innerHTML=filtered.map(renderEventCard).join('');
 }
 function openMap(v,c){window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v+', '+c)}`,'_blank')}
