@@ -13,6 +13,17 @@
     --shadow: 0 2px 8px rgba(0,0,0,0.1);
     --text-color: #000000;
     --spacing: 0.5rem;
+    /* Category Colors */
+    --music-color: #8b5cf6;
+    --music-light: #a78bfa;
+    --sports-color: #10b981;
+    --sports-light: #34d399;
+    --arts-color: #f59e0b;
+    --arts-light: #fbbf24;
+    --film-color: #ef4444;
+    --film-light: #f87171;
+    --misc-color: #6b7280;
+    --misc-light: #9ca3af;
   }
   body.dark {
     --bg-color: #121212;
@@ -42,8 +53,30 @@
   button{padding:0.5rem 1rem;font-size:1rem;background-color:var(--primary-color);color:white;border:none;border-radius:4px;cursor:pointer;transition:background-color 0.3s ease;}
   button:hover{background-color:#005fa3;}
   button:disabled{opacity:0.5;cursor:not-allowed;}
-  .event-card{display:flex;background-color:var(--card-color);border:1px solid var(--border-color);border-radius:10px;box-shadow:var(--shadow);padding:1rem;margin:1rem 0;gap:1rem;transition:transform 0.2s ease;}
+  .event-card{display:flex;background-color:var(--card-color);border:1px solid var(--border-color);border-radius:10px;box-shadow:var(--shadow);padding:1rem;margin:1rem 0;gap:1rem;transition:transform 0.2s ease;position:relative;overflow:hidden;}
+  .event-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--category-color, var(--primary-color));z-index:1;}
   .event-card:hover{transform:scale(1.02);}
+  .event-card.music{--category-color:var(--music-color);}
+  .event-card.music .event-title{color:var(--music-color);}
+  .event-card.music .buttons button:first-child{background-color:var(--music-color);}
+  .event-card.music .buttons button:first-child:hover{background-color:var(--music-light);}
+  .event-card.sports{--category-color:var(--sports-color);}
+  .event-card.sports .event-title{color:var(--sports-color);}
+  .event-card.sports .buttons button:first-child{background-color:var(--sports-color);}
+  .event-card.sports .buttons button:first-child:hover{background-color:var(--sports-light);}
+  .event-card.arts{--category-color:var(--arts-color);}
+  .event-card.arts .event-title{color:var(--arts-color);}
+  .event-card.arts .buttons button:first-child{background-color:var(--arts-color);}
+  .event-card.arts .buttons button:first-child:hover{background-color:var(--arts-light);}
+  .event-card.film{--category-color:var(--film-color);}
+  .event-card.film .event-title{color:var(--film-color);}
+  .event-card.film .buttons button:first-child{background-color:var(--film-color);}
+  .event-card.film .buttons button:first-child:hover{background-color:var(--film-light);}
+  .event-card.misc{--category-color:var(--misc-color);}
+  .event-card.misc .event-title{color:var(--misc-color);}
+  .event-card.misc .buttons button:first-child{background-color:var(--misc-color);}
+  .event-card.misc .buttons button:first-child:hover{background-color:var(--misc-light);}
+
   .event-image{width:150px;height:100px;object-fit:cover;border-radius:8px;}
   .event-content{flex:1;}
   .event-title{font-size:1.25rem;font-weight:bold;}
@@ -56,7 +89,12 @@
   .calendar-grid .header{font-weight:bold;cursor:default;}
   .calendar-grid div.today{background-color:gold !important;}
   .calendar-grid div.no-events{opacity:0.4;}
-  .calendar-grid div.has-events{background-color:var(--primary-color);color:white;}
+  .calendar-grid div.has-events.music{background-color:var(--music-color);color:white;}
+  .calendar-grid div.has-events.sports{background-color:var(--sports-color);color:white;}
+  .calendar-grid div.has-events.arts{background-color:var(--arts-color);color:white;}
+  .calendar-grid div.has-events.film{background-color:var(--film-color);color:white;}
+  .calendar-grid div.has-events.misc{background-color:var(--misc-color);color:white;}
+  .calendar-grid div.has-events.mixed{background:linear-gradient(45deg,var(--music-color),var(--sports-color),var(--arts-color));color:white;}
   .calendar-grid div:hover:not(.no-events):not(.header){background-color:var(--border-color);}
   .calendar-grid div.empty{background:none;box-shadow:none;cursor:default;}
   a{color:#cc0077;font-weight:bold;text-decoration:none;}
@@ -202,12 +240,38 @@ function renderPagination(){
   }
   document.getElementById('results').appendChild(pagDiv);
 }
+function getCategoryClass(event) {
+  const classifications = event.classifications || [];
+  const segment = classifications[0]?.segment?.name?.toLowerCase() || '';
+  const genre = classifications[0]?.genre?.name?.toLowerCase() || '';
+  
+  if (segment.includes('music') || genre.includes('music')) return 'music';
+  if (segment.includes('sports') || genre.includes('sports')) return 'sports';
+  if (segment.includes('arts') || segment.includes('theatre') || genre.includes('theatre') || genre.includes('arts')) return 'arts';
+  if (segment.includes('film') || genre.includes('film') || genre.includes('movie')) return 'film';
+  return 'misc';
+}
+
+function getCategoryEmoji(categoryClass) {
+  const emojis = {
+    music: '🎵',
+    sports: '⚽',
+    arts: '🎭',
+    film: '🎬',
+    misc: '🎪'
+  };
+  return emojis[categoryClass] || '🎪';
+}
+
 function renderEventCard(e){
   const v=e._embedded.venues[0];
-  return `<div class="event-card">
+  const categoryClass = getCategoryClass(e);
+  const categoryEmoji = getCategoryEmoji(categoryClass);
+  
+  return `<div class="event-card ${categoryClass}">
     <img src="${e.images?.[0]?.url||''}" loading="lazy" alt="${e.name}" class="event-image"/>
     <div class="event-content">
-      <div class="event-title">${e.name}</div>
+      <div class="event-title">${categoryEmoji} ${e.name}</div>
       <div class="event-details">
         <p><strong>Venue:</strong> ${v.name}</p>
         <p><strong>Date:</strong> ${e.dates.start.localDate}</p>
@@ -271,7 +335,8 @@ function renderCalendar(){
   // Add days of the month
   for(let day=1;day<=daysInMonth;day++){
     const dateStr=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const hasEvent=allEvents.some(e=>e.dates.start.localDate===dateStr);
+    const dayEvents = allEvents.filter(e=>e.dates.start.localDate===dateStr);
+    const hasEvent = dayEvents.length > 0;
     
     let classes=[];
     let clickHandler='';
@@ -281,7 +346,23 @@ function renderCalendar(){
     }
     
     if(hasEvent){
-      classes.push('has-events');
+      // Determine dominant category for the day
+      const categories = dayEvents.map(e => getCategoryClass(e));
+      const categoryCount = {};
+      categories.forEach(cat => categoryCount[cat] = (categoryCount[cat] || 0) + 1);
+      
+      const dominantCategory = Object.keys(categoryCount).reduce((a, b) => 
+        categoryCount[a] > categoryCount[b] ? a : b
+      );
+      
+      // If multiple categories, use mixed
+      const uniqueCategories = [...new Set(categories)];
+      if(uniqueCategories.length > 2) {
+        classes.push('has-events', 'mixed');
+      } else {
+        classes.push('has-events', dominantCategory);
+      }
+      
       clickHandler=`onclick="filterByDate('${dateStr}')"`;
     } else {
       classes.push('no-events');
