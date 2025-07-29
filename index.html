@@ -325,7 +325,7 @@ function showAllEvents(){
 }
 function openInlineMap(venueName, cityName){
   const query = encodeURIComponent(`${venueName}, ${cityName}`);
-  const embedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dQWTcyaTyUhXc4&q=${query}`;
+  const embedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyCR-P4l1oeLNMQAMY0I_fJdwlqOFns7H0Q=${query}`;
   
   document.getElementById('modalTitle').textContent = `📍 ${venueName}`;
   document.getElementById('mapFrame').src = embedUrl;
