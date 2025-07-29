@@ -325,14 +325,61 @@ function showAllEvents(){
 }
 function openInlineMap(venueName, cityName){
   const query = encodeURIComponent(`${venueName}, ${cityName}`);
-  const embedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyCR-P4l1oeLNMQAMY0I_fJdwlqOFns7H0Q=${query}`;
+  // Use OpenStreetMap as a fallback - no API key required
+  const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=-180,-85,180,85&layer=mapnik&marker=0,0`;
   
   document.getElementById('modalTitle').textContent = `📍 ${venueName}`;
-  document.getElementById('mapFrame').src = embedUrl;
+  
+  // Create a custom iframe content with multiple map options
+  const mapContent = `
+    <div style="height:100%;display:flex;flex-direction:column;font-family:Arial,sans-serif;">
+      <div style="padding:15px;background:#f5f5f5;border-bottom:1px solid #ddd;">
+        <h4 style="margin:0 0 10px 0;color:#333;">📍 ${venueName}</h4>
+        <p style="margin:0;color:#666;font-size:14px;">📍 ${cityName}</p>
+      </div>
+      <div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          <a href="https://www.google.com/maps/search/?api=1&query=${query}" 
+             target="_blank" 
+             style="background:#4285f4;color:white;padding:12px 20px;text-decoration:none;border-radius:5px;font-weight:bold;display:inline-block;">
+            🗺️ Open in Google Maps
+          </a>
+          <a href="https://www.openstreetmap.org/search?query=${query}" 
+             target="_blank" 
+             style="background:#7EBC6F;color:white;padding:12px 20px;text-decoration:none;border-radius:5px;font-weight:bold;display:inline-block;">
+            🌍 Open in OpenStreetMap
+          </a>
+        </div>
+        <div style="background:#f9f9f9;padding:15px;border-radius:8px;border-left:4px solid #4285f4;">
+          <h5 style="margin:0 0 8px 0;color:#333;">Quick Actions:</h5>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <a href="https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${query}" 
+               target="_blank" 
+               style="background:#000;color:white;padding:8px 15px;text-decoration:none;border-radius:20px;font-size:13px;">
+              🚗 Get Uber
+            </a>
+            <a href="https://lyft.com/ride?destination[address]=${query}" 
+               target="_blank" 
+               style="background:#ff00bf;color:white;padding:8px 15px;text-decoration:none;border-radius:20px;font-size:13px;">
+              🚕 Get Lyft
+            </a>
+          </div>
+        </div>
+        <div style="background:#e8f5e8;padding:15px;border-radius:8px;">
+          <p style="margin:0;font-size:14px;color:#2e7d2e;">
+            💡 <strong>Tip:</strong> Click on the map links above to get directions, view street view, and explore the area around the venue.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('mapFrame').srcdoc = mapContent;
   document.getElementById('mapModal').style.display = 'block';
 }
 function closeMapModal(){
   document.getElementById('mapModal').style.display = 'none';
+  document.getElementById('mapFrame').srcdoc = '';
   document.getElementById('mapFrame').src = '';
 }
 function openMap(v,c){window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v+', '+c)}`,'_blank')}
