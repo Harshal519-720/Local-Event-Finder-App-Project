@@ -109,7 +109,7 @@
 </div>
 <script>
 const apiKey='qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
-let allEvents=[],currentLang='en',currentPage=1;
+let allEvents=[],displayEvents=[],currentLang='en',currentPage=1;
 const perPage=10;
 let calendarMonth=new Date().getMonth();
 let calendarYear=new Date().getFullYear();
@@ -141,13 +141,14 @@ function searchEvents(){
   fetch(`https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=200${classification}`)
     .then(res=>res.json()).then(data=>{
       allEvents=data._embedded?.events||[];
+      displayEvents=[...allEvents];
       currentPage=1;
       renderPage();
       renderCalendar();
     });
 }
 function renderPagination(){
-  const totalPages=Math.ceil(allEvents.length/perPage);
+  const totalPages=Math.ceil(displayEvents.length/perPage);
   const pagDiv=document.createElement('div');
   pagDiv.className='pagination';
   const addBtn=(label,page)=>{const b=document.createElement('button');b.textContent=label;if(page===currentPage)b.classList.add('active');b.onclick=()=>{currentPage=page;renderPage()};pagDiv.appendChild(b)}
@@ -185,7 +186,7 @@ function renderPage(){
   const resultsDiv=document.getElementById('results');
   resultsDiv.innerHTML='';
   const start=(currentPage-1)*perPage;
-  resultsDiv.innerHTML+=allEvents.slice(start,start+perPage).map(renderEventCard).join('');
+  resultsDiv.innerHTML+=displayEvents.slice(start,start+perPage).map(renderEventCard).join('');
   renderPagination();
 }
 function toggleCalendar(){
@@ -227,11 +228,9 @@ function changeMonth(offset){
   renderCalendar();
 }
 function filterByDate(ds){
-  const resultsDiv=document.getElementById('results');
-  const filteredEvents=allEvents.filter(e=>e.dates.start.localDate===ds);
-  resultsDiv.innerHTML='';
-  if(!filteredEvents.length){resultsDiv.innerHTML=`<p style="text-align:center;">${langData[currentLang]["No events on"]} ${ds}</p>`;return;}
-  filteredEvents.forEach(e=>{resultsDiv.innerHTML+=renderEventCard(e);});
+  displayEvents = allEvents.filter(e=>e.dates.start.localDate===ds);
+  currentPage=1;
+  renderPage();
 }
 function openMap(v,c){window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v+', '+c)}`,'_blank')}
 function openUber(v,c){window.open(`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(v+', '+c)}`,'_blank')}
