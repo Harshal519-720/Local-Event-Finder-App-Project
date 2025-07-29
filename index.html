@@ -72,6 +72,19 @@
   #settingsMenu label{display:block;margin-bottom:0.5rem;}
   .settings-container button{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-color);}
   .back-to-all{text-align:center;margin:1rem 0;}
+  .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.5);backdrop-filter:blur(3px);}
+  .modal-content{background-color:var(--card-color);margin:5% auto;padding:0;border-radius:10px;width:90%;max-width:800px;max-height:80vh;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.3);}
+  .modal-header{background-color:var(--primary-color);color:white;padding:1rem;display:flex;justify-content:space-between;align-items:center;}
+  .modal-header h3{margin:0;font-size:1.2rem;}
+  .close{color:white;font-size:24px;font-weight:bold;cursor:pointer;background:none;border:none;}
+  .close:hover{opacity:0.7;}
+  .modal-body{padding:0;height:400px;}
+  .map-container{width:100%;height:100%;}
+  .map-container iframe{width:100%;height:100%;border:none;}
+  @media(max-width:600px){
+    .modal-content{width:95%;margin:10% auto;}
+    .modal-body{height:300px;}
+  }
 </style>
 </head>
 <body>
@@ -113,6 +126,21 @@
     <button onclick="showAllEvents()">← Show All Events</button>
   </div>
   <div id="results"></div>
+</div>
+
+<!-- Map Modal -->
+<div id="mapModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle">Venue Location</h3>
+      <button class="close" onclick="closeMapModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="map-container">
+        <iframe id="mapFrame" src="" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
+  </div>
 </div>
 <script>
 const apiKey='qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
@@ -187,7 +215,7 @@ function renderEventCard(e){
         <p><a href="${e.url}" target="_blank">🎟️ Tickets</a></p>
       </div>
       <div class="buttons">
-        <button onclick="openMap('${v.name}','${v.city.name}')">🗺️ Map</button>
+        <button onclick="openInlineMap('${v.name}','${v.city.name}')">🗺️ Map</button>
         <button onclick="openUber('${v.name}','${v.city.name}')">🚗 Uber</button>
         <button onclick="openLyft('${v.name}','${v.city.name}')">🚕 Lyft</button>
       </div>
@@ -295,6 +323,18 @@ function showAllEvents(){
   document.getElementById('backToAll').style.display = 'none';
   renderPage();
 }
+function openInlineMap(venueName, cityName){
+  const query = encodeURIComponent(`${venueName}, ${cityName}`);
+  const embedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dQWTcyaTyUhXc4&q=${query}`;
+  
+  document.getElementById('modalTitle').textContent = `📍 ${venueName}`;
+  document.getElementById('mapFrame').src = embedUrl;
+  document.getElementById('mapModal').style.display = 'block';
+}
+function closeMapModal(){
+  document.getElementById('mapModal').style.display = 'none';
+  document.getElementById('mapFrame').src = '';
+}
 function openMap(v,c){window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v+', '+c)}`,'_blank')}
 function openUber(v,c){window.open(`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(v+', '+c)}`,'_blank')}
 function openLyft(v,c){window.open(`https://lyft.com/ride?destination[address]=${encodeURIComponent(v+', '+c)}`,'_blank')}
@@ -305,6 +345,21 @@ document.getElementById("langSelect").addEventListener("change",setLanguage);
 document.getElementById("darkToggle").addEventListener("change",toggleDark);
 document.getElementById("btnSearch").addEventListener("click",searchEvents);
 document.getElementById("btnCalendar").addEventListener("click",toggleCalendar);
+
+// Close modal when clicking outside of it
+window.onclick = function(event) {
+  const modal = document.getElementById('mapModal');
+  if (event.target === modal) {
+    closeMapModal();
+  }
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeMapModal();
+  }
+});
 
 // Initialize from localStorage
 if(localStorage.getItem('lang'))document.getElementById('langSelect').value=localStorage.getItem('lang');
