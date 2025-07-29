@@ -223,16 +223,23 @@ function changeMonth(offset){
   else if(calendarMonth>11){calendarMonth=0;calendarYear++;}
   renderCalendar();
 }
-function filterByDate(ds){
-  const filtered=allEvents.filter(e=>e.dates.start.localDate===ds);
-  const r=document.getElementById('results');
-  r.innerHTML = '';
-  currentPage = 1;
-  if(!filtered.length){
-    r.innerHTML=`<p style="text-align:center;">${langData[currentLang]["No events on"]} ${ds}</p>`;return;
+function filterByDate(ds) {
+  const resultsDiv = document.getElementById('results');
+  
+  const filteredEvents = allEvents.filter(e => e.dates.start.localDate === ds);
+  
+  resultsDiv.innerHTML = '';
+  
+  if (!filteredEvents.length) {
+    resultsDiv.innerHTML = `<p style="text-align:center;">${langData[currentLang]["No events on"]} ${ds}</p>`;
+    return;
   }
-  r.innerHTML=filtered.map(renderEventCard).join('');
+
+  filteredEvents.forEach(e => {
+    resultsDiv.innerHTML += renderEventCard(e);
+  });
 }
+
 function openMap(v,c){window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v+', '+c)}`,'_blank')}
 function openUber(v,c){window.open(`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(v+', '+c)}`,'_blank')}
 function openLyft(v,c){window.open(`https://lyft.com/ride?destination[address]=${encodeURIComponent(v+', '+c)}`,'_blank')}
