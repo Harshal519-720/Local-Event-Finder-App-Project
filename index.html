@@ -150,42 +150,89 @@
   body.dark .logo-dark{display:block;}
   .search-bar{display:flex;flex-wrap:wrap;gap:var(--spacing);justify-content:center;margin-bottom:1rem;align-items:flex-start;}
   
-  /* Category filter styles */
-  .category-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin: 0.5rem 0;
-    padding: 0.75rem;
-    background: var(--card-color);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow);
+  /* Category dropdown styles */
+  .category-dropdown {
+    position: relative;
+    display: inline-block;
   }
   
-  .category-checkbox {
-    display: flex;
-    align-items: center;
+  .dropdown-button {
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    font-size: 1rem;
+    background: var(--card-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
     cursor: pointer;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 20px;
-    background: transparent;
+    min-width: 200px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     transition: all 0.3s ease;
     user-select: none;
-    white-space: nowrap;
   }
   
-  .category-checkbox:hover {
-    background: var(--border-color);
-    transform: translateY(-1px);
+  .dropdown-button:hover {
+    border-color: var(--primary-color);
   }
   
-  .category-checkbox input[type="checkbox"] {
+  .dropdown-button.active {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 119, 204, 0.2);
+  }
+  
+  .dropdown-arrow {
+    transition: transform 0.3s ease;
+    font-size: 0.8rem;
+  }
+  
+  .dropdown-button.active .dropdown-arrow {
+    transform: rotate(180deg);
+  }
+  
+  .dropdown-content {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card-color);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    box-shadow: var(--shadow);
+    z-index: 1000;
+    max-height: 250px;
+    overflow-y: auto;
     display: none;
   }
   
-  .checkmark {
+  .dropdown-content.show {
+    display: block;
+  }
+  
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .dropdown-item:last-child {
+    border-bottom: none;
+  }
+  
+  .dropdown-item:hover {
+    background: var(--border-color);
+  }
+  
+  .dropdown-item input[type="checkbox"] {
+    display: none;
+  }
+  
+  .dropdown-checkmark {
     width: 18px;
     height: 18px;
     border: 2px solid var(--border-color);
@@ -196,53 +243,64 @@
     transition: all 0.3s ease;
     font-size: 12px;
     font-weight: bold;
+    flex-shrink: 0;
   }
   
-  .checkmark.music { border-color: var(--music-color); }
-  .checkmark.sports { border-color: var(--sports-color); }
-  .checkmark.arts { border-color: var(--arts-color); }
-  .checkmark.film { border-color: var(--film-color); }
-  .checkmark.misc { border-color: var(--misc-color); }
+  .dropdown-checkmark.music { border-color: var(--music-color); }
+  .dropdown-checkmark.sports { border-color: var(--sports-color); }
+  .dropdown-checkmark.arts { border-color: var(--arts-color); }
+  .dropdown-checkmark.film { border-color: var(--film-color); }
+  .dropdown-checkmark.misc { border-color: var(--misc-color); }
   
-  .category-checkbox input[type="checkbox"]:checked + .checkmark {
+  .dropdown-item input[type="checkbox"]:checked + .dropdown-checkmark {
     background: var(--primary-color);
     border-color: var(--primary-color);
     color: white;
   }
   
-  .category-checkbox input[type="checkbox"]:checked + .checkmark::after {
+  .dropdown-item input[type="checkbox"]:checked + .dropdown-checkmark::after {
     content: "✓";
   }
   
-  .category-checkbox input[type="checkbox"]:checked + .checkmark.music {
+  .dropdown-item input[type="checkbox"]:checked + .dropdown-checkmark.music {
     background: var(--music-color);
     border-color: var(--music-color);
   }
   
-  .category-checkbox input[type="checkbox"]:checked + .checkmark.sports {
+  .dropdown-item input[type="checkbox"]:checked + .dropdown-checkmark.sports {
     background: var(--sports-color);
     border-color: var(--sports-color);
   }
   
-  .category-checkbox input[type="checkbox"]:checked + .checkmark.arts {
+  .dropdown-item input[type="checkbox"]:checked + .dropdown-checkmark.arts {
     background: var(--arts-color);
     border-color: var(--arts-color);
   }
   
-  .category-checkbox input[type="checkbox"]:checked + .checkmark.film {
+  .dropdown-item input[type="checkbox"]:checked + .dropdown-checkmark.film {
     background: var(--film-color);
     border-color: var(--film-color);
   }
   
-  .category-checkbox input[type="checkbox"]:checked + .checkmark.misc {
+  .dropdown-item input[type="checkbox"]:checked + .dropdown-checkmark.misc {
     background: var(--misc-color);
     border-color: var(--misc-color);
   }
   
-  .category-label {
+  .dropdown-label {
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--text-color);
+    user-select: none;
+  }
+  
+  .selected-count {
+    font-size: 0.8rem;
+    background: var(--primary-color);
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    margin-left: auto;
   }
   
   /* Dark mode icon transition */
@@ -254,6 +312,7 @@
   body.dark #darkModeIcon {
     transform: rotate(180deg);
   }
+  
   input[type="text"],select{padding:0.5rem;font-size:1rem;}
   button{padding:0.5rem 1rem;font-size:1rem;background-color:var(--primary-color);color:white;border:none;border-radius:4px;cursor:pointer;transition:background-color 0.3s ease;}
   button:hover{background-color:#005fa3;}
@@ -385,12 +444,9 @@
   a{color:#cc0077;font-weight:bold;text-decoration:none;}
   @media(max-width:600px){
     .search-bar{flex-direction:column;align-items:center;}
-    .category-filters {
-      justify-content: center;
-    }
-    .category-checkbox {
-      font-size: 0.85rem;
-      padding: 0.4rem 0.6rem;
+    .category-select {
+      min-width: 160px;
+      font-size: 0.9rem;
     }
     .event-card{flex-direction:column;align-items:center;}
     .event-title{font-size:1.1rem;}
@@ -440,37 +496,43 @@
     <label for="city" id="labelCity">City:</label>
     <input type="text" id="city" placeholder="Enter city"/>
     <label for="category" id="labelCategory">Categories:</label>
-    <div id="categoryFilters" class="category-filters">
-      <label class="category-checkbox">
-        <input type="checkbox" value="All" id="categoryAll" checked>
-        <span class="checkmark"></span>
-        <span class="category-label" id="categoryLabelAll">All</span>
-      </label>
-      <label class="category-checkbox">
-        <input type="checkbox" value="Music" id="categoryMusic">
-        <span class="checkmark music"></span>
-        <span class="category-label" id="categoryLabelMusic">🎵 Music</span>
-      </label>
-      <label class="category-checkbox">
-        <input type="checkbox" value="Sports" id="categorySports">
-        <span class="checkmark sports"></span>
-        <span class="category-label" id="categoryLabelSports">⚽ Sports</span>
-      </label>
-      <label class="category-checkbox">
-        <input type="checkbox" value="Arts & Theater" id="categoryArts">
-        <span class="checkmark arts"></span>
-        <span class="category-label" id="categoryLabelArts">🎭 Arts & Theater</span>
-      </label>
-      <label class="category-checkbox">
-        <input type="checkbox" value="Film" id="categoryFilm">
-        <span class="checkmark film"></span>
-        <span class="category-label" id="categoryLabelFilm">🎬 Film</span>
-      </label>
-      <label class="category-checkbox">
-        <input type="checkbox" value="Miscellaneous" id="categoryMisc">
-        <span class="checkmark misc"></span>
-        <span class="category-label" id="categoryLabelMisc">🎪 Miscellaneous</span>
-      </label>
+    <div class="category-dropdown">
+      <div class="dropdown-button" id="categoryDropdownBtn">
+        <span id="dropdownText">All Categories</span>
+        <span class="dropdown-arrow">▼</span>
+      </div>
+      <div class="dropdown-content" id="categoryDropdownContent">
+        <div class="dropdown-item" onclick="handleCategoryChange(this)">
+          <input type="checkbox" value="All" id="categoryAll" checked>
+          <span class="dropdown-checkmark"></span>
+          <span class="dropdown-label" id="categoryLabelAll">All</span>
+        </div>
+        <div class="dropdown-item" onclick="handleCategoryChange(this)">
+          <input type="checkbox" value="Music" id="categoryMusic">
+          <span class="dropdown-checkmark music"></span>
+          <span class="dropdown-label" id="categoryLabelMusic">🎵 Music</span>
+        </div>
+        <div class="dropdown-item" onclick="handleCategoryChange(this)">
+          <input type="checkbox" value="Sports" id="categorySports">
+          <span class="dropdown-checkmark sports"></span>
+          <span class="dropdown-label" id="categoryLabelSports">⚽ Sports</span>
+        </div>
+        <div class="dropdown-item" onclick="handleCategoryChange(this)">
+          <input type="checkbox" value="Arts & Theater" id="categoryArts">
+          <span class="dropdown-checkmark arts"></span>
+          <span class="dropdown-label" id="categoryLabelArts">🎭 Arts & Theater</span>
+        </div>
+        <div class="dropdown-item" onclick="handleCategoryChange(this)">
+          <input type="checkbox" value="Film" id="categoryFilm">
+          <span class="dropdown-checkmark film"></span>
+          <span class="dropdown-label" id="categoryLabelFilm">🎬 Film</span>
+        </div>
+        <div class="dropdown-item" onclick="handleCategoryChange(this)">
+          <input type="checkbox" value="Miscellaneous" id="categoryMisc">
+          <span class="dropdown-checkmark misc"></span>
+          <span class="dropdown-label" id="categoryLabelMisc">🎪 Miscellaneous</span>
+        </div>
+      </div>
     </div>
     <button id="btnSearch">Search</button>
     <button id="btnCalendar">📅 View Calendar</button>
@@ -503,9 +565,9 @@ const perPage=10;
 let calendarMonth=new Date().getMonth();
 let calendarYear=new Date().getFullYear();
 let isFilteredByDate = false;
-const langData={en:{city:"City:",category:"Categories:",All:"All",Music:"Music",Sports:"Sports","Arts & Theater":"Arts & Theater",Film:"Film",Miscellaneous:"Miscellaneous",Search:"Search","📅 View Calendar":"📅 View Calendar","No events on":"No events on",placeholder:"Enter city"},
-es:{city:"Ciudad:",category:"Categorías:",All:"Todas",Music:"Música",Sports:"Deportes","Arts & Theater":"Arte & Teatro",Film:"Cine",Miscellaneous:"Misceláneo",Search:"Buscar","📅 View Calendar":"📅 Ver calendario","No events on":"No hay eventos el",placeholder:"Introduce ciudad"},
-fr:{city:"Ville:",category:"Catégories:",All:"Toutes",Music:"Musique",Sports:"Sport","Arts & Theater":"Arts & Théâtre",Film:"Cinéma",Miscellaneous:"Divers",Search:"Rechercher","📅 View Calendar":"📅 Voir calendrier","No events on":"Aucun événement le",placeholder:"Entrez ville"}};
+const langData={en:{city:"City:",category:"Categories:",All:"All Categories",Music:"Music",Sports:"Sports","Arts & Theater":"Arts & Theater",Film:"Film",Miscellaneous:"Miscellaneous",Search:"Search","📅 View Calendar":"📅 View Calendar","No events on":"No events on",placeholder:"Enter city"},
+es:{city:"Ciudad:",category:"Categorías:",All:"Todas las categorías",Music:"Música",Sports:"Deportes","Arts & Theater":"Arte & Teatro",Film:"Cine",Miscellaneous:"Misceláneo",Search:"Buscar","📅 View Calendar":"📅 Ver calendario","No events on":"No hay eventos el",placeholder:"Introduce ciudad"},
+fr:{city:"Ville:",category:"Catégories:",All:"Toutes les catégories",Music:"Musique",Sports:"Sport","Arts & Theater":"Arts & Théâtre",Film:"Cinéma",Miscellaneous:"Divers",Search:"Rechercher","📅 View Calendar":"📅 Voir calendrier","No events on":"Aucun événement le",placeholder:"Entrez ville"}};
 
 function setLanguage(){
   currentLang=document.getElementById('langSelect').value;
@@ -515,7 +577,7 @@ function setLanguage(){
   document.getElementById('city').placeholder=t.placeholder;
   document.getElementById('labelCategory').textContent=t.category;
   
-  // Update category checkbox labels
+  // Update category dropdown labels
   document.getElementById('categoryLabelAll').textContent=t.All;
   document.getElementById('categoryLabelMusic').textContent=`🎵 ${t.Music}`;
   document.getElementById('categoryLabelSports').textContent=`⚽ ${t.Sports}`;
@@ -525,6 +587,9 @@ function setLanguage(){
   
   document.getElementById('btnSearch').textContent=t.Search;
   document.getElementById('btnCalendar').textContent=t["📅 View Calendar"];
+  
+  // Update dropdown button text
+  updateDropdownText();
 }
 
 function toggleDark(){
@@ -547,23 +612,73 @@ function toggleDark(){
 
 // Function to get selected categories
 function getSelectedCategories() {
-  const checkboxes = document.querySelectorAll('#categoryFilters input[type="checkbox"]:checked');
+  const checkboxes = document.querySelectorAll('.dropdown-content input[type="checkbox"]:checked');
   return Array.from(checkboxes).map(cb => cb.value);
 }
 
-// Function to handle "All" checkbox logic
-function handleCategoryChange(changedCheckbox) {
-  const allCheckbox = document.getElementById('categoryAll');
-  const otherCheckboxes = document.querySelectorAll('#categoryFilters input[type="checkbox"]:not(#categoryAll)');
+// Function to handle dropdown toggle
+function toggleDropdown() {
+  const dropdown = document.getElementById('categoryDropdownContent');
+  const button = document.getElementById('categoryDropdownBtn');
   
-  if (changedCheckbox.value === 'All') {
-    if (changedCheckbox.checked) {
+  const isOpen = dropdown.classList.contains('show');
+  
+  if (isOpen) {
+    dropdown.classList.remove('show');
+    button.classList.remove('active');
+  } else {
+    dropdown.classList.add('show');
+    button.classList.add('active');
+  }
+}
+
+// Function to update dropdown button text
+function updateDropdownText() {
+  const selectedCategories = getSelectedCategories();
+  const dropdownText = document.getElementById('dropdownText');
+  const t = langData[currentLang];
+  
+  if (selectedCategories.includes('All') || selectedCategories.length === 0) {
+    dropdownText.textContent = t.All;
+  } else if (selectedCategories.length === 1) {
+    const categoryMap = {
+      'Music': t.Music,
+      'Sports': t.Sports,
+      'Arts & Theater': t["Arts & Theater"],
+      'Film': t.Film,
+      'Miscellaneous': t.Miscellaneous
+    };
+    const emoji = {
+      'Music': '🎵',
+      'Sports': '⚽',
+      'Arts & Theater': '🎭',
+      'Film': '🎬',
+      'Miscellaneous': '🎪'
+    };
+    const category = selectedCategories[0];
+    dropdownText.innerHTML = `${emoji[category]} ${categoryMap[category]}`;
+  } else {
+    dropdownText.innerHTML = `${selectedCategories.length} selected`;
+  }
+}
+
+// Function to handle "All" checkbox logic
+function handleCategoryChange(clickedItem) {
+  const checkbox = clickedItem.querySelector('input[type="checkbox"]');
+  const allCheckbox = document.getElementById('categoryAll');
+  const otherCheckboxes = document.querySelectorAll('.dropdown-content input[type="checkbox"]:not(#categoryAll)');
+  
+  // Toggle the clicked checkbox
+  checkbox.checked = !checkbox.checked;
+  
+  if (checkbox.value === 'All') {
+    if (checkbox.checked) {
       // If "All" is checked, uncheck all others
       otherCheckboxes.forEach(cb => cb.checked = false);
     }
   } else {
     // If any specific category is checked, uncheck "All"
-    if (changedCheckbox.checked) {
+    if (checkbox.checked) {
       allCheckbox.checked = false;
     }
     
@@ -573,6 +688,21 @@ function handleCategoryChange(changedCheckbox) {
       allCheckbox.checked = true;
     }
   }
+  
+  updateDropdownText();
+  
+  // Save selected categories to localStorage
+  const selectedCategories = getSelectedCategories();
+  localStorage.setItem('selectedCategories', JSON.stringify(selectedCategories));
+}
+
+// Function to get selected category (for backwards compatibility)
+function getSelectedCategory() {
+  const selectedCategories = getSelectedCategories();
+  if (selectedCategories.includes('All') || selectedCategories.length === 0) {
+    return 'All';
+  }
+  return selectedCategories[0]; // Return first selected for API compatibility
 }
 
 // Function to update body class based on dominant category
@@ -894,11 +1024,23 @@ document.getElementById("darkToggle").addEventListener("change",toggleDark);
 document.getElementById("btnSearch").addEventListener("click",searchEvents);
 document.getElementById("btnCalendar").addEventListener("click",toggleCalendar);
 
-// Add event listeners for category checkboxes
-document.querySelectorAll('#categoryFilters input[type="checkbox"]').forEach(checkbox => {
-  checkbox.addEventListener('change', function() {
-    handleCategoryChange(this);
-  });
+// Add event listener for dropdown toggle
+document.getElementById('categoryDropdownBtn').addEventListener('click', toggleDropdown);
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+  const dropdown = document.getElementById('categoryDropdownContent');
+  const button = document.getElementById('categoryDropdownBtn');
+  
+  if (!button.contains(event.target) && !dropdown.contains(event.target)) {
+    dropdown.classList.remove('show');
+    button.classList.remove('active');
+  }
+});
+
+// Prevent dropdown from closing when clicking inside it
+document.getElementById('categoryDropdownContent').addEventListener('click', function(event) {
+  event.stopPropagation();
 });
 
 // Close modal when clicking outside of it
@@ -931,7 +1073,7 @@ if(localStorage.getItem('lastCity'))document.getElementById('city').value=localS
 if(localStorage.getItem('selectedCategories')) {
   try {
     const savedCategories = JSON.parse(localStorage.getItem('selectedCategories'));
-    document.querySelectorAll('#categoryFilters input[type="checkbox"]').forEach(cb => {
+    document.querySelectorAll('.dropdown-content input[type="checkbox"]').forEach(cb => {
       cb.checked = savedCategories.includes(cb.value);
     });
   } catch(e) {
