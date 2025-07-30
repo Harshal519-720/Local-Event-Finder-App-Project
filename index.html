@@ -16,32 +16,132 @@
     /* Category Colors */
     --music-color: #8b5cf6;
     --music-light: #a78bfa;
+    --music-gradient: linear-gradient(135deg, #8b5cf6, #a78bfa, #c4b5fd);
     --sports-color: #10b981;
     --sports-light: #34d399;
+    --sports-gradient: linear-gradient(135deg, #10b981, #34d399, #6ee7b7);
     --arts-color: #f59e0b;
     --arts-light: #fbbf24;
+    --arts-gradient: linear-gradient(135deg, #f59e0b, #fbbf24, #fcd34d);
     --film-color: #ef4444;
     --film-light: #f87171;
+    --film-gradient: linear-gradient(135deg, #ef4444, #f87171, #fca5a5);
     --misc-color: #6b7280;
     --misc-light: #9ca3af;
+    --misc-gradient: linear-gradient(135deg, #6b7280, #9ca3af, #d1d5db);
   }
   body.dark {
-    --bg-color: #121212;
-    --card-color: #1e1e1e;
+    --bg-color: #0a0a0a;
+    --card-color: #1a1a1a;
     --primary-color: #4da8ff;
     --border-color: #333333;
     --text-color: #ffffff;
-    background: linear-gradient(135deg,#1a1a1a,#121212);
+    /* Enhanced dark mode gradients with more depth */
+    --music-gradient: linear-gradient(135deg, #6b46c1, #8b5cf6, #4c1d95);
+    --sports-gradient: linear-gradient(135deg, #047857, #10b981, #065f46);
+    --arts-gradient: linear-gradient(135deg, #d97706, #f59e0b, #92400e);
+    --film-gradient: linear-gradient(135deg, #dc2626, #ef4444, #991b1b);
+    --misc-gradient: linear-gradient(135deg, #4b5563, #6b7280, #374151);
   }
+  
   body {
     margin: 0;
     font-family: "Segoe UI",sans-serif;
-    background: linear-gradient(135deg,#e0f7ff,#f0f8ff);
+    background: linear-gradient(135deg, #e0f7ff, #f0f8ff, #dbeafe);
     color: var(--text-color);
     padding: var(--spacing) 1rem;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
   }
-  .container{max-width:960px;margin:auto;}
+  
+  body.dark {
+    background: linear-gradient(135deg, #0f172a, #1e293b, #0f1419);
+  }
+  
+  /* Dynamic background overlay based on dominant category */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+    background: var(--current-category-gradient, transparent);
+    transition: opacity 0.8s ease;
+    pointer-events: none;
+    z-index: -1;
+  }
+  
+  body.category-music::before {
+    --current-category-gradient: radial-gradient(ellipse at 20% 50%, rgba(139, 92, 246, 0.05), transparent 70%),
+                                 radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.03), transparent 70%);
+    opacity: 1;
+  }
+  
+  body.category-sports::before {
+    --current-category-gradient: radial-gradient(ellipse at 20% 50%, rgba(16, 185, 129, 0.05), transparent 70%),
+                                 radial-gradient(ellipse at 80% 20%, rgba(52, 211, 153, 0.03), transparent 70%);
+    opacity: 1;
+  }
+  
+  body.category-arts::before {
+    --current-category-gradient: radial-gradient(ellipse at 20% 50%, rgba(245, 158, 11, 0.05), transparent 70%),
+                                 radial-gradient(ellipse at 80% 20%, rgba(251, 191, 36, 0.03), transparent 70%);
+    opacity: 1;
+  }
+  
+  body.category-film::before {
+    --current-category-gradient: radial-gradient(ellipse at 20% 50%, rgba(239, 68, 68, 0.05), transparent 70%),
+                                 radial-gradient(ellipse at 80% 20%, rgba(248, 113, 113, 0.03), transparent 70%);
+    opacity: 1;
+  }
+  
+  body.category-misc::before {
+    --current-category-gradient: radial-gradient(ellipse at 20% 50%, rgba(107, 114, 128, 0.05), transparent 70%),
+                                 radial-gradient(ellipse at 80% 20%, rgba(156, 163, 175, 0.03), transparent 70%);
+    opacity: 1;
+  }
+  
+  /* Dark mode category backgrounds - more intense */
+  body.dark.category-music::before {
+    --current-category-gradient: radial-gradient(ellipse at 20% 50%, rgba(107, 70, 193, 0.12), transparent 70%),
+                                 radial-gradient(ellipse at 80% 20%, rgba(139, 92, 246, 0.08), transparent 70%),
+                                 radial-gradient(ellipse at 50% 80%, rgba(76, 29, 149, 0.06), transparent 70%);
+    opacity: 1;
+  }
+  
+  body.dark.category-sports::before {
+    --current-category-gradient: radial-gradient(ellipse at 20% 50%, rgba(4, 120, 87, 0.12), transparent 70%),
+                                 radial-gradient(ellipse at 80% 20%, rgba(16, 185, 129, 0.08), transparent 70%),
+                                 radial-gradient(ellipse at 50% 80%, rgba(6, 95, 70, 0.06), transparent 70%);
+    opacity: 1;
+  }
+  
+  body.dark.category-arts::before {
+    --current-category-gradient: radial-gradient(ellipse at 20% 50%, rgba(217, 119, 6, 0.12), transparent 70%),
+                                 radial-gradient(ellipse at 80% 20%, rgba(245, 158, 11, 0.08), transparent 70%),
+                                 radial-gradient(ellipse at 50% 80%, rgba(146, 64, 14, 0.06), transparent 70%);
+    opacity: 1;
+  }
+  
+  body.dark.category-film::before {
+    --current-category-gradient: radial-gradient(ellipse at 20% 50%, rgba(220, 38, 38, 0.12), transparent 70%),
+                                 radial-gradient(ellipse at 80% 20%, rgba(239, 68, 68, 0.08), transparent 70%),
+                                 radial-gradient(ellipse at 50% 80%, rgba(153, 27, 27, 0.06), transparent 70%);
+    opacity: 1;
+  }
+  
+  body.dark.category-misc::before {
+    --current-category-gradient: radial-gradient(ellipse at 20% 50%, rgba(75, 85, 99, 0.12), transparent 70%),
+                                 radial-gradient(ellipse at 80% 20%, rgba(107, 114, 128, 0.08), transparent 70%),
+                                 radial-gradient(ellipse at 50% 80%, rgba(55, 65, 81, 0.06), transparent 70%);
+    opacity: 1;
+  }
+
+  .container{max-width:960px;margin:auto;position:relative;z-index:1;}
   .logo-container{display:flex;justify-content:center;margin:var(--spacing) 0;}
   .logo{height:150px;max-width:100%;}
   .logo-light{display:block;}
@@ -53,26 +153,106 @@
   button{padding:0.5rem 1rem;font-size:1rem;background-color:var(--primary-color);color:white;border:none;border-radius:4px;cursor:pointer;transition:background-color 0.3s ease;}
   button:hover{background-color:#005fa3;}
   button:disabled{opacity:0.5;cursor:not-allowed;}
-  .event-card{display:flex;background-color:var(--card-color);border:1px solid var(--border-color);border-radius:10px;box-shadow:var(--shadow);padding:1rem;margin:1rem 0;gap:1rem;transition:transform 0.2s ease;position:relative;overflow:hidden;}
-  .event-card::before{content:'';position:absolute;top:0;left:0;width:4px;height:100%;background:var(--category-color, var(--primary-color));z-index:1;}
-  .event-card:hover{transform:scale(1.02);}
-  .event-card.music{--category-color:var(--music-color);}
+  
+  .event-card{
+    display:flex;
+    background: var(--card-color);
+    border:1px solid var(--border-color);
+    border-radius:10px;
+    box-shadow:var(--shadow);
+    padding:1rem;
+    margin:1rem 0;
+    gap:1rem;
+    transition:all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position:relative;
+    overflow:hidden;
+    backdrop-filter: blur(10px);
+  }
+  
+  .event-card::before{
+    content:'';
+    position:absolute;
+    top:0;
+    left:0;
+    width:4px;
+    height:100%;
+    background:var(--category-color, var(--primary-color));
+    z-index:1;
+  }
+  
+  /* Category gradient backgrounds for cards */
+  .event-card.music {
+    --category-color: var(--music-color);
+    background: linear-gradient(135deg, var(--card-color) 0%, rgba(139, 92, 246, 0.03) 100%);
+  }
+  
+  .event-card.sports {
+    --category-color: var(--sports-color);
+    background: linear-gradient(135deg, var(--card-color) 0%, rgba(16, 185, 129, 0.03) 100%);
+  }
+  
+  .event-card.arts {
+    --category-color: var(--arts-color);
+    background: linear-gradient(135deg, var(--card-color) 0%, rgba(245, 158, 11, 0.03) 100%);
+  }
+  
+  .event-card.film {
+    --category-color: var(--film-color);
+    background: linear-gradient(135deg, var(--card-color) 0%, rgba(239, 68, 68, 0.03) 100%);
+  }
+  
+  .event-card.misc {
+    --category-color: var(--misc-color);
+    background: linear-gradient(135deg, var(--card-color) 0%, rgba(107, 114, 128, 0.03) 100%);
+  }
+  
+  /* Enhanced dark mode card gradients */
+  body.dark .event-card.music {
+    background: linear-gradient(135deg, var(--card-color) 0%, rgba(107, 70, 193, 0.08) 50%, rgba(139, 92, 246, 0.05) 100%);
+    border-color: rgba(139, 92, 246, 0.2);
+  }
+  
+  body.dark .event-card.sports {
+    background: linear-gradient(135deg, var(--card-color) 0%, rgba(4, 120, 87, 0.08) 50%, rgba(16, 185, 129, 0.05) 100%);
+    border-color: rgba(16, 185, 129, 0.2);
+  }
+  
+  body.dark .event-card.arts {
+    background: linear-gradient(135deg, var(--card-color) 0%, rgba(217, 119, 6, 0.08) 50%, rgba(245, 158, 11, 0.05) 100%);
+    border-color: rgba(245, 158, 11, 0.2);
+  }
+  
+  body.dark .event-card.film {
+    background: linear-gradient(135deg, var(--card-color) 0%, rgba(220, 38, 38, 0.08) 50%, rgba(239, 68, 68, 0.05) 100%);
+    border-color: rgba(239, 68, 68, 0.2);
+  }
+  
+  body.dark .event-card.misc {
+    background: linear-gradient(135deg, var(--card-color) 0%, rgba(75, 85, 99, 0.08) 50%, rgba(107, 114, 128, 0.05) 100%);
+    border-color: rgba(107, 114, 128, 0.2);
+  }
+  
+  .event-card:hover{
+    transform:scale(1.02) translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  }
+  
+  body.dark .event-card:hover {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+  }
+  
   .event-card.music .event-title{color:var(--music-color);}
   .event-card.music .buttons button:first-child{background-color:var(--music-color);}
   .event-card.music .buttons button:first-child:hover{background-color:var(--music-light);}
-  .event-card.sports{--category-color:var(--sports-color);}
   .event-card.sports .event-title{color:var(--sports-color);}
   .event-card.sports .buttons button:first-child{background-color:var(--sports-color);}
   .event-card.sports .buttons button:first-child:hover{background-color:var(--sports-light);}
-  .event-card.arts{--category-color:var(--arts-color);}
   .event-card.arts .event-title{color:var(--arts-color);}
   .event-card.arts .buttons button:first-child{background-color:var(--arts-color);}
   .event-card.arts .buttons button:first-child:hover{background-color:var(--arts-light);}
-  .event-card.film{--category-color:var(--film-color);}
   .event-card.film .event-title{color:var(--film-color);}
   .event-card.film .buttons button:first-child{background-color:var(--film-color);}
   .event-card.film .buttons button:first-child:hover{background-color:var(--film-light);}
-  .event-card.misc{--category-color:var(--misc-color);}
   .event-card.misc .event-title{color:var(--misc-color);}
   .event-card.misc .buttons button:first-child{background-color:var(--misc-color);}
   .event-card.misc .buttons button:first-child:hover{background-color:var(--misc-light);}
@@ -206,6 +386,30 @@ function toggleDark(){
   document.body.classList.toggle("dark");
   localStorage.setItem('darkMode',document.body.classList.contains('dark'));
 }
+
+// Function to update body class based on dominant category
+function updateBackgroundGradient() {
+  // Remove all existing category classes
+  document.body.classList.remove('category-music', 'category-sports', 'category-arts', 'category-film', 'category-misc');
+  
+  if (displayEvents.length === 0) return;
+  
+  // Count categories in current display
+  const categoryCount = {};
+  displayEvents.forEach(event => {
+    const category = getCategoryClass(event);
+    categoryCount[category] = (categoryCount[category] || 0) + 1;
+  });
+  
+  // Find dominant category
+  const dominantCategory = Object.keys(categoryCount).reduce((a, b) => 
+    categoryCount[a] > categoryCount[b] ? a : b
+  );
+  
+  // Apply the dominant category class to body
+  document.body.classList.add(`category-${dominantCategory}`);
+}
+
 function searchEvents(){
   const city=document.getElementById('city').value;
   const category=document.getElementById('category').value;
@@ -221,6 +425,7 @@ function searchEvents(){
       document.getElementById('backToAll').style.display = 'none';
       renderPage();
       renderCalendar();
+      updateBackgroundGradient();
     });
 }
 function renderPagination(){
@@ -393,6 +598,7 @@ function filterByDate(dateStr){
   isFilteredByDate = true;
   document.getElementById('backToAll').style.display = 'block';
   renderPage();
+  updateBackgroundGradient();
   
   // Close calendar view
   document.getElementById('calendar').style.display = 'none';
@@ -403,6 +609,7 @@ function showAllEvents(){
   isFilteredByDate = false;
   document.getElementById('backToAll').style.display = 'none';
   renderPage();
+  updateBackgroundGradient();
 }
 function openInlineMap(venueName, cityName){
   const query = encodeURIComponent(`${venueName}, ${cityName}`);
@@ -498,6 +705,3 @@ if(localStorage.getItem('darkMode')==='true'){
 if(localStorage.getItem('lastCity'))document.getElementById('city').value=localStorage.getItem('lastCity');
 if(localStorage.getItem('lastCategory'))document.getElementById('category').value=localStorage.getItem('lastCategory');
 setLanguage();
-</script>
-</body>
-</html>
