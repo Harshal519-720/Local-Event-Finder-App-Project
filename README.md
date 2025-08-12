@@ -7,3 +7,8 @@ To get to the website --> https://harshal519-720.github.io/Local-Event-Finder-Ap
 
 
 *Additional Features: Light/Dark Mode, Calendar View for Events based on month, Color Coded category filters, Language Preference(Choose which language to see text with choices between English, French, and Spanish)
+
+# How To Use
+<img width="1918" height="1078" alt="Screenshot 2025-08-12 113039" src="https://github.com/user-attachments/assets/0ee223be-9a88-4d98-a187-29807afd1dca" />
+
+
