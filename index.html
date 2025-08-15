@@ -150,49 +150,6 @@
   body.dark .logo-dark{display:block;}
   .search-bar{display:flex;flex-wrap:wrap;gap:var(--spacing);justify-content:center;margin-bottom:1rem;align-items:flex-start;}
   
-  /* Loading indicator styles */
-  .loading-indicator {
-    display: none;
-    text-align: center;
-    padding: 2rem;
-    color: var(--text-color);
-  }
-  
-  .loading-spinner {
-    display: inline-block;
-    width: 30px;
-    height: 30px;
-    border: 3px solid var(--border-color);
-    border-radius: 50%;
-    border-top-color: var(--primary-color);
-    animation: spin 1s ease-in-out infinite;
-    margin-bottom: 1rem;
-  }
-  
-  .location-status {
-    background: var(--card-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
-    margin: 1rem 0;
-    text-align: center;
-    display: none;
-  }
-  
-  .location-status.success {
-    background: linear-gradient(135deg, var(--card-color) 0%, rgba(16, 185, 129, 0.05) 100%);
-    border-color: var(--sports-color);
-  }
-  
-  .location-status.error {
-    background: linear-gradient(135deg, var(--card-color) 0%, rgba(239, 68, 68, 0.05) 100%);
-    border-color: var(--film-color);
-  }
-  
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  
   /* Category dropdown styles */
   .category-dropdown {
     position: relative;
@@ -535,18 +492,6 @@
     <img src="logo-light.png" alt="Light Logo" class="logo logo-light">
     <img src="logo-dark.png" alt="Dark Logo" class="logo logo-dark">
   </div>
-  
-  <!-- Loading indicator -->
-  <div class="loading-indicator" id="loadingIndicator">
-    <div class="loading-spinner"></div>
-    <div id="loadingText">Finding events in your area...</div>
-  </div>
-  
-  <!-- Location status -->
-  <div class="location-status" id="locationStatus">
-    <div id="locationMessage"></div>
-  </div>
-  
   <div class="search-bar">
     <label for="city" id="labelCity">City:</label>
     <input type="text" id="city" placeholder="Enter city"/>
@@ -582,4 +527,565 @@
           <span class="dropdown-checkmark film"></span>
           <span class="dropdown-label" id="categoryLabelFilm">🎬 Film</span>
         </div>
-        <div class="dropdown-item" onclick="handleCategoryChange(
+        <div class="dropdown-item" onclick="handleCategoryChange(this)">
+          <input type="checkbox" value="Miscellaneous" id="categoryMisc">
+          <span class="dropdown-checkmark misc"></span>
+          <span class="dropdown-label" id="categoryLabelMisc">🎪 Miscellaneous</span>
+        </div>
+      </div>
+    </div>
+    <button id="btnSearch">Search</button>
+    <button id="btnCalendar">📅 View Calendar</button>
+  </div>
+  <div id="calendar" style="display:none;"></div>
+  <div class="back-to-all" id="backToAll" style="display:none;">
+    <button onclick="showAllEvents()">← Show All Events</button>
+  </div>
+  <div id="results"></div>
+</div>
+
+<!-- Map Modal -->
+<div id="mapModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 id="modalTitle">Venue Location</h3>
+      <button class="close" onclick="closeMapModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="map-container">
+        <iframe id="mapFrame" src="" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const apiKey='qGDnOricwKqTRb66e5xyDWPYOWsQGDCT';
+let allEvents=[],displayEvents=[],currentLang='en',currentPage=1;
+const perPage=10;
+let calendarMonth=new Date().getMonth();
+let calendarYear=new Date().getFullYear();
+let isFilteredByDate = false;
+const langData={en:{city:"City:",category:"Categories:",All:"All Categories",Music:"Music",Sports:"Sports","Arts & Theater":"Arts & Theater",Film:"Film",Miscellaneous:"Miscellaneous",Search:"Search","📅 View Calendar":"📅 View Calendar","No events on":"No events on",placeholder:"Enter city"},
+es:{city:"Ciudad:",category:"Categorías:",All:"Todas las categorías",Music:"Música",Sports:"Deportes","Arts & Theater":"Arte & Teatro",Film:"Cine",Miscellaneous:"Misceláneo",Search:"Buscar","📅 View Calendar":"📅 Ver calendario","No events on":"No hay eventos el",placeholder:"Introduce ciudad"},
+fr:{city:"Ville:",category:"Catégories:",All:"Toutes les catégories",Music:"Musique",Sports:"Sport","Arts & Theater":"Arts & Théâtre",Film:"Cinéma",Miscellaneous:"Divers",Search:"Rechercher","📅 View Calendar":"📅 Voir calendrier","No events on":"Aucun événement le",placeholder:"Entrez ville"}};
+
+function setLanguage(){
+  currentLang=document.getElementById('langSelect').value;
+  localStorage.setItem('lang',currentLang);
+  const t=langData[currentLang];
+  document.getElementById('labelCity').textContent=t.city;
+  document.getElementById('city').placeholder=t.placeholder;
+  document.getElementById('labelCategory').textContent=t.category;
+  
+  // Update category dropdown labels
+  document.getElementById('categoryLabelAll').textContent=t.All;
+  document.getElementById('categoryLabelMusic').textContent=`🎵 ${t.Music}`;
+  document.getElementById('categoryLabelSports').textContent=`⚽ ${t.Sports}`;
+  document.getElementById('categoryLabelArts').textContent=`🎭 ${t["Arts & Theater"]}`;
+  document.getElementById('categoryLabelFilm').textContent=`🎬 ${t.Film}`;
+  document.getElementById('categoryLabelMisc').textContent=`🎪 ${t.Miscellaneous}`;
+  
+  document.getElementById('btnSearch').textContent=t.Search;
+  document.getElementById('btnCalendar').textContent=t["📅 View Calendar"];
+  
+  // Update dropdown button text
+  updateDropdownText();
+}
+
+function toggleDark(){
+  document.body.classList.toggle("dark");
+  const isDark = document.body.classList.contains('dark');
+  localStorage.setItem('darkMode', isDark);
+  
+  // Update dark mode icon and text
+  const icon = document.getElementById('darkModeIcon');
+  const text = document.getElementById('darkModeText');
+  
+  if (isDark) {
+    icon.textContent = '☀️';
+    text.textContent = 'Light Mode';
+  } else {
+    icon.textContent = '🌙';
+    text.textContent = 'Dark Mode';
+  }
+}
+
+// Function to get selected categories
+function getSelectedCategories() {
+  const checkboxes = document.querySelectorAll('.dropdown-content input[type="checkbox"]:checked');
+  return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// Function to handle dropdown toggle
+function toggleDropdown() {
+  const dropdown = document.getElementById('categoryDropdownContent');
+  const button = document.getElementById('categoryDropdownBtn');
+  
+  const isOpen = dropdown.classList.contains('show');
+  
+  if (isOpen) {
+    dropdown.classList.remove('show');
+    button.classList.remove('active');
+  } else {
+    dropdown.classList.add('show');
+    button.classList.add('active');
+  }
+}
+
+// Function to update dropdown button text
+function updateDropdownText() {
+  const selectedCategories = getSelectedCategories();
+  const dropdownText = document.getElementById('dropdownText');
+  const t = langData[currentLang];
+  
+  if (selectedCategories.includes('All') || selectedCategories.length === 0) {
+    dropdownText.textContent = t.All;
+  } else if (selectedCategories.length === 1) {
+    const categoryMap = {
+      'Music': t.Music,
+      'Sports': t.Sports,
+      'Arts & Theater': t["Arts & Theater"],
+      'Film': t.Film,
+      'Miscellaneous': t.Miscellaneous
+    };
+    const emoji = {
+      'Music': '🎵',
+      'Sports': '⚽',
+      'Arts & Theater': '🎭',
+      'Film': '🎬',
+      'Miscellaneous': '🎪'
+    };
+    const category = selectedCategories[0];
+    dropdownText.innerHTML = `${emoji[category]} ${categoryMap[category]}`;
+  } else {
+    dropdownText.innerHTML = `${selectedCategories.length} selected`;
+  }
+}
+
+// Function to handle "All" checkbox logic
+function handleCategoryChange(clickedItem) {
+  const checkbox = clickedItem.querySelector('input[type="checkbox"]');
+  const allCheckbox = document.getElementById('categoryAll');
+  const otherCheckboxes = document.querySelectorAll('.dropdown-content input[type="checkbox"]:not(#categoryAll)');
+  
+  // Toggle the clicked checkbox
+  checkbox.checked = !checkbox.checked;
+  
+  if (checkbox.value === 'All') {
+    if (checkbox.checked) {
+      // If "All" is checked, uncheck all others
+      otherCheckboxes.forEach(cb => cb.checked = false);
+    }
+  } else {
+    // If any specific category is checked, uncheck "All"
+    if (checkbox.checked) {
+      allCheckbox.checked = false;
+    }
+    
+    // If no specific categories are checked, check "All"
+    const anySpecificChecked = Array.from(otherCheckboxes).some(cb => cb.checked);
+    if (!anySpecificChecked) {
+      allCheckbox.checked = true;
+    }
+  }
+  
+  updateDropdownText();
+  
+  // Save selected categories to localStorage
+  const selectedCategories = getSelectedCategories();
+  localStorage.setItem('selectedCategories', JSON.stringify(selectedCategories));
+}
+
+// Function to get selected category (for backwards compatibility)
+function getSelectedCategory() {
+  const selectedCategories = getSelectedCategories();
+  if (selectedCategories.includes('All') || selectedCategories.length === 0) {
+    return 'All';
+  }
+  return selectedCategories[0]; // Return first selected for API compatibility
+}
+
+// Function to update body class based on dominant category
+function updateBackgroundGradient() {
+  // Remove all existing category classes
+  document.body.classList.remove('category-music', 'category-sports', 'category-arts', 'category-film', 'category-misc');
+  
+  if (displayEvents.length === 0) return;
+  
+  // Count categories in current display
+  const categoryCount = {};
+  displayEvents.forEach(event => {
+    const category = getCategoryClass(event);
+    categoryCount[category] = (categoryCount[category] || 0) + 1;
+  });
+  
+  // Find dominant category
+  const dominantCategory = Object.keys(categoryCount).reduce((a, b) => 
+    categoryCount[a] > categoryCount[b] ? a : b
+  );
+  
+  // Apply the dominant category class to body
+  document.body.classList.add(`category-${dominantCategory}`);
+}
+
+function searchEvents(){
+  const city=document.getElementById('city').value;
+  const selectedCategories = getSelectedCategories();
+  
+  localStorage.setItem('lastCity',city);
+  localStorage.setItem('selectedCategories', JSON.stringify(selectedCategories));
+  
+  // Build classification parameter for multiple categories
+  let classificationParam = '';
+  if (!selectedCategories.includes('All') && selectedCategories.length > 0) {
+    const classifications = selectedCategories.map(cat => `classificationName=${encodeURIComponent(cat)}`).join('&');
+    classificationParam = `&${classifications}`;
+  }
+  
+  fetch(`https://app.ticketmaster.com/discovery/v2/events.json?apikey=${apiKey}&city=${encodeURIComponent(city)}&size=200${classificationParam}`)
+    .then(res=>res.json()).then(data=>{
+      allEvents=data._embedded?.events||[];
+      
+      // Filter events client-side for multiple category support
+      if (!selectedCategories.includes('All') && selectedCategories.length > 0) {
+        displayEvents = allEvents.filter(event => {
+          const eventCategory = getCategoryClass(event);
+          const categoryMap = {
+            'music': 'Music',
+            'sports': 'Sports', 
+            'arts': 'Arts & Theater',
+            'film': 'Film',
+            'misc': 'Miscellaneous'
+          };
+          return selectedCategories.includes(categoryMap[eventCategory]);
+        });
+      } else {
+        displayEvents = [...allEvents];
+      }
+      
+      currentPage=1;
+      isFilteredByDate = false;
+      document.getElementById('backToAll').style.display = 'none';
+      renderPage();
+      renderCalendar();
+      updateBackgroundGradient();
+    });
+}
+function renderPagination(){
+  const totalPages=Math.ceil(displayEvents.length/perPage);
+  if(totalPages <= 1) return;
+  
+  const pagDiv=document.createElement('div');
+  pagDiv.className='pagination';
+  const addBtn=(label,page)=>{const b=document.createElement('button');b.textContent=label;if(page===currentPage)b.classList.add('active');b.onclick=()=>{currentPage=page;renderPage()};pagDiv.appendChild(b)}
+  if(totalPages<=7){for(let i=1;i<=totalPages;i++)addBtn(i,i);}
+  else{
+    addBtn(1,1);
+    if(currentPage>3)pagDiv.append('...');
+    for(let i=Math.max(2,currentPage-1);i<=Math.min(totalPages-1,currentPage+1);i++)addBtn(i,i);
+    if(currentPage<totalPages-2)pagDiv.append('...');
+    addBtn(totalPages,totalPages);
+  }
+  document.getElementById('results').appendChild(pagDiv);
+}
+function getCategoryClass(event) {
+  const classifications = event.classifications || [];
+  const segment = classifications[0]?.segment?.name?.toLowerCase() || '';
+  const genre = classifications[0]?.genre?.name?.toLowerCase() || '';
+  
+  if (segment.includes('music') || genre.includes('music')) return 'music';
+  if (segment.includes('sports') || genre.includes('sports')) return 'sports';
+  if (segment.includes('arts') || segment.includes('theatre') || genre.includes('theatre') || genre.includes('arts')) return 'arts';
+  if (segment.includes('film') || genre.includes('film') || genre.includes('movie')) return 'film';
+  return 'misc';
+}
+
+function getCategoryEmoji(categoryClass) {
+  const emojis = {
+    music: '🎵',
+    sports: '⚽',
+    arts: '🎭',
+    film: '🎬',
+    misc: '🎪'
+  };
+  return emojis[categoryClass] || '🎪';
+}
+
+function renderEventCard(e){
+  const v=e._embedded.venues[0];
+  const categoryClass = getCategoryClass(e);
+  const categoryEmoji = getCategoryEmoji(categoryClass);
+  
+  return `<div class="event-card ${categoryClass}">
+    <img src="${e.images?.[0]?.url||''}" loading="lazy" alt="${e.name}" class="event-image"/>
+    <div class="event-content">
+      <div class="event-title">${categoryEmoji} ${e.name}</div>
+      <div class="event-details">
+        <p><strong>Venue:</strong> ${v.name}</p>
+        <p><strong>Date:</strong> ${e.dates.start.localDate}</p>
+        <p><strong>Time:</strong> ${e.dates.start.localTime||'TBA'}</p>
+        <p><a href="${e.url}" target="_blank">🎟️ Tickets</a></p>
+      </div>
+      <div class="buttons">
+        <button onclick="openInlineMap('${v.name}','${v.city.name}')">🗺️ Map</button>
+        <button onclick="openUber('${v.name}','${v.city.name}')">🚗 Uber</button>
+        <button onclick="openLyft('${v.name}','${v.city.name}')">🚕 Lyft</button>
+      </div>
+    </div>
+  </div>`;
+}
+function renderPage(){
+  const resultsDiv=document.getElementById('results');
+  resultsDiv.innerHTML='';
+  const start=(currentPage-1)*perPage;
+  const eventsToShow = displayEvents.slice(start,start+perPage);
+  
+  if(eventsToShow.length === 0) {
+    resultsDiv.innerHTML = '<p style="text-align:center;margin:2rem 0;">No events found.</p>';
+    return;
+  }
+  
+  resultsDiv.innerHTML+=eventsToShow.map(renderEventCard).join('');
+  renderPagination();
+}
+function toggleCalendar(){
+  const c=document.getElementById('calendar');
+  c.style.display=c.style.display==='none'?'block':'none';
+  if(c.style.display === 'block') {
+    renderCalendar();
+  }
+}
+function renderCalendar(){
+  const now=new Date();
+  const todayDate=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const y=calendarYear,m=calendarMonth;
+  
+  // Get first day of month and number of days
+  const firstDay = new Date(y, m, 1);
+  const lastDay = new Date(y, m + 1, 0);
+  const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday
+  const daysInMonth = lastDay.getDate();
+  
+  let html=`<div style="text-align:center;margin-bottom:0.5rem;">
+    <button onclick="changeMonth(-1)">⬅️</button>
+    <strong>${new Date(y,m).toLocaleString('default',{month:'long'})} ${y}</strong>
+    <button onclick="changeMonth(1)">➡️</button>
+  </div><div class="calendar-grid">`;
+  
+  // Add day headers
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>html+=`<div class="header"><strong>${d}</strong></div>`);
+  
+  // Add empty cells for days before the first day of month
+  for(let i=0;i<firstDayOfWeek;i++){
+    html+=`<div class="empty"></div>`;
+  }
+  
+  // Add days of the month
+  for(let day=1;day<=daysInMonth;day++){
+    const dateStr=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dayEvents = allEvents.filter(e=>e.dates.start.localDate===dateStr);
+    const hasEvent = dayEvents.length > 0;
+    
+    let classes=[];
+    let clickHandler='';
+    
+    if(dateStr===todayDate){
+      classes.push('today');
+    }
+    
+    if(hasEvent){
+      // Determine dominant category for the day
+      const categories = dayEvents.map(e => getCategoryClass(e));
+      const categoryCount = {};
+      categories.forEach(cat => categoryCount[cat] = (categoryCount[cat] || 0) + 1);
+      
+      const dominantCategory = Object.keys(categoryCount).reduce((a, b) => 
+        categoryCount[a] > categoryCount[b] ? a : b
+      );
+      
+      // If multiple categories, use mixed
+      const uniqueCategories = [...new Set(categories)];
+      if(uniqueCategories.length > 2) {
+        classes.push('has-events', 'mixed');
+      } else {
+        classes.push('has-events', dominantCategory);
+      }
+      
+      clickHandler=`onclick="filterByDate('${dateStr}')"`;
+    } else {
+      classes.push('no-events');
+    }
+    
+    html+=`<div class="${classes.join(' ')}" ${clickHandler}>${day}</div>`;
+  }
+  
+  // Fill remaining cells to complete the grid (42 total cells = 6 rows × 7 days)
+  const totalCells = firstDayOfWeek + daysInMonth;
+  const remainingCells = 42 - totalCells;
+  for(let i=0;i<remainingCells;i++){
+    html+=`<div class="empty"></div>`;
+  }
+  
+  html+='</div>';
+  document.getElementById('calendar').innerHTML=html;
+}
+function changeMonth(offset){
+  calendarMonth+=offset;
+  if(calendarMonth<0){calendarMonth=11;calendarYear--;}
+  else if(calendarMonth>11){calendarMonth=0;calendarYear++;}
+  renderCalendar();
+}
+function filterByDate(dateStr){
+  displayEvents = allEvents.filter(e=>e.dates.start.localDate===dateStr);
+  currentPage=1;
+  isFilteredByDate = true;
+  document.getElementById('backToAll').style.display = 'block';
+  renderPage();
+  updateBackgroundGradient();
+  
+  // Close calendar view
+  document.getElementById('calendar').style.display = 'none';
+}
+function showAllEvents(){
+  displayEvents = [...allEvents];
+  currentPage = 1;
+  isFilteredByDate = false;
+  document.getElementById('backToAll').style.display = 'none';
+  renderPage();
+  updateBackgroundGradient();
+}
+function openInlineMap(venueName, cityName){
+  const query = encodeURIComponent(`${venueName}, ${cityName}`);
+  // Use OpenStreetMap as a fallback - no API key required
+  const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=-180,-85,180,85&layer=mapnik&marker=0,0`;
+  
+  document.getElementById('modalTitle').textContent = `📍 ${venueName}`;
+  
+  // Create a custom iframe content with multiple map options
+  const mapContent = `
+    <div style="height:100%;display:flex;flex-direction:column;font-family:Arial,sans-serif;">
+      <div style="padding:15px;background:#f5f5f5;border-bottom:1px solid #ddd;">
+        <h4 style="margin:0 0 10px 0;color:#333;">📍 ${venueName}</h4>
+        <p style="margin:0;color:#666;font-size:14px;">📍 ${cityName}</p>
+      </div>
+      <div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;flex-wrap:wrap;gap:10px;">
+          <a href="https://www.google.com/maps/search/?api=1&query=${query}" 
+             target="_blank" 
+             style="background:#4285f4;color:white;padding:12px 20px;text-decoration:none;border-radius:5px;font-weight:bold;display:inline-block;">
+            🗺️ Open in Google Maps
+          </a>
+          <a href="https://www.openstreetmap.org/search?query=${query}" 
+             target="_blank" 
+             style="background:#7EBC6F;color:white;padding:12px 20px;text-decoration:none;border-radius:5px;font-weight:bold;display:inline-block;">
+            🌍 Open in OpenStreetMap
+          </a>
+        </div>
+        <div style="background:#f9f9f9;padding:15px;border-radius:8px;border-left:4px solid #4285f4;">
+          <h5 style="margin:0 0 8px 0;color:#333;">Quick Actions:</h5>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <a href="https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${query}" 
+               target="_blank" 
+               style="background:#000;color:white;padding:8px 15px;text-decoration:none;border-radius:20px;font-size:13px;">
+              🚗 Get Uber
+            </a>
+            <a href="https://lyft.com/ride?destination[address]=${query}" 
+               target="_blank" 
+               style="background:#ff00bf;color:white;padding:8px 15px;text-decoration:none;border-radius:20px;font-size:13px;">
+              🚕 Get Lyft
+            </a>
+          </div>
+        </div>
+        <div style="background:#e8f5e8;padding:15px;border-radius:8px;">
+          <p style="margin:0;font-size:14px;color:#2e7d2e;">
+            💡 <strong>Tip:</strong> Click on the map links above to get directions, view street view, and explore the area around the venue.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.getElementById('mapFrame').srcdoc = mapContent;
+  document.getElementById('mapModal').style.display = 'block';
+}
+function closeMapModal(){
+  document.getElementById('mapModal').style.display = 'none';
+  document.getElementById('mapFrame').srcdoc = '';
+  document.getElementById('mapFrame').src = '';
+}
+function openMap(v,c){window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(v+', '+c)}`,'_blank')}
+function openUber(v,c){window.open(`https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[formatted_address]=${encodeURIComponent(v+', '+c)}`,'_blank')}
+function openLyft(v,c){window.open(`https://lyft.com/ride?destination[address]=${encodeURIComponent(v+', '+c)}`,'_blank')}
+
+// Event listeners
+document.getElementById("settingsBtn").addEventListener("click",()=>{const m=document.getElementById("settingsMenu");m.style.display=m.style.display==="block"?"none":"block";});
+document.getElementById("langSelect").addEventListener("change",setLanguage);
+document.getElementById("darkToggle").addEventListener("change",toggleDark);
+document.getElementById("btnSearch").addEventListener("click",searchEvents);
+document.getElementById("btnCalendar").addEventListener("click",toggleCalendar);
+
+// Add event listener for dropdown toggle
+document.getElementById('categoryDropdownBtn').addEventListener('click', toggleDropdown);
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+  const dropdown = document.getElementById('categoryDropdownContent');
+  const button = document.getElementById('categoryDropdownBtn');
+  
+  if (!button.contains(event.target) && !dropdown.contains(event.target)) {
+    dropdown.classList.remove('show');
+    button.classList.remove('active');
+  }
+});
+
+// Prevent dropdown from closing when clicking inside it
+document.getElementById('categoryDropdownContent').addEventListener('click', function(event) {
+  event.stopPropagation();
+});
+
+// Close modal when clicking outside of it
+window.onclick = function(event) {
+  const modal = document.getElementById('mapModal');
+  if (event.target === modal) {
+    closeMapModal();
+  }
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeMapModal();
+  }
+});
+
+// Initialize from localStorage
+if(localStorage.getItem('lang'))document.getElementById('langSelect').value=localStorage.getItem('lang');
+if(localStorage.getItem('darkMode')==='true'){
+  document.body.classList.add('dark');
+  document.getElementById('darkToggle').checked = true;
+  // Update dark mode icon immediately
+  document.getElementById('darkModeIcon').textContent = '☀️';
+  document.getElementById('darkModeText').textContent = 'Light Mode';
+}
+if(localStorage.getItem('lastCity'))document.getElementById('city').value=localStorage.getItem('lastCity');
+
+// Restore selected categories
+if(localStorage.getItem('selectedCategories')) {
+  try {
+    const savedCategories = JSON.parse(localStorage.getItem('selectedCategories'));
+    document.querySelectorAll('.dropdown-content input[type="checkbox"]').forEach(cb => {
+      cb.checked = savedCategories.includes(cb.value);
+    });
+  } catch(e) {
+    // If parsing fails, default to "All" checked
+    document.getElementById('categoryAll').checked = true;
+  }
+} else {
+  // Default to "All" checked
+  document.getElementById('categoryAll').checked = true;
+}
+
+setLanguage();
+</script>
+</body>
+</html>
